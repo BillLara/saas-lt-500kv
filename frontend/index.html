@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaaS LT 500 kV — Cockpit Tático do Gestor & App Offline-First</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { background-color: #0b1120; color: #f1f5f9; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.6); }
+    #map { height: 520px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+    .leaflet-popup-content-wrapper { background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 0.5rem; }
+    .leaflet-popup-tip { background: #0f172a; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP HEADER BAR -->
+  <header class="glass sticky top-0 z-50 px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg">
+        LT
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg tracking-tight text-white">LT 500 kV SE UTE GNA II – SE CAMPOS 2</h1>
+          <span class="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" id="badge-baseline">
+            Baseline V1 Ativa
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">
+          SaaS Multi-Tenant • Contrato EPC R$ 158,24 MM (GNA × Alubar/Railec) • 37,464 km • 84 Torres (Séries 0 a 37) + 2 Pórticos
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <button onclick="simularHistorico('FASE_EXECUCAO_CRITICA')" class="px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow flex items-center gap-1.5">
+        <span>⚡</span> Rodar "Teste de Fogo" (Histórico Real + 4 Desvios)
+      </button>
+      <button onclick="simularHistorico('RESET_BASELINE')" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition">
+        Resetar Dia Zero
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="bg-slate-900/90 border-b border-slate-800 px-6 flex gap-2 overflow-x-auto">
+    <button onclick="switchTab('tab-cockpit')" id="btn-tab-cockpit" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-cyan-400 text-cyan-300">
+      1. Cockpit Georreferenciado & Linha de Balanço
+    </button>
+    <button onclick="switchTab('tab-pacotes')" id="btn-tab-pacotes" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+      2. Cronograma MS Project (.mpp) & Avanço Proporcional IA
+    </button>
+    <button onclick="switchTab('tab-curva-s')" id="btn-tab-curva-s" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+      📈 3. Curva S & Tendência IA (Baseline × Real × Monte Carlo)
+    </button>
+    <button onclick="switchTab('tab-ordens')" id="btn-tab-ordens" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+      4. Ordem de Batalha (OB-001) & Ordens de Produção (<span id="count-op">0</span>)
+    </button>
+    <button onclick="switchTab('tab-mobile')" id="btn-tab-mobile" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+      5. App Mobile do Fiscal (Offline-First SQLite + Geofencing 50m)
+    </button>
+    <button onclick="switchTab('tab-baseline')" id="btn-tab-baseline" class="tab-btn px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+      6. Governança & Revisão de Baseline
+    </button>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 p-6 max-w-[1600px] w-full mx-auto space-y-6">
+
+    <!-- EXECUTIVE KPI STRIP -->
+    <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div class="glass rounded-xl p-4">
+        <div class="text-xs text-slate-400">Avanço Físico Ponderado</div>
+        <div class="text-2xl font-bold text-white mt-1" id="kpi-avanco-global">0,0%</div>
+        <div class="text-[11px] text-slate-400 mt-1">Meta Período: <span id="kpi-meta-periodo" class="text-slate-200">0,0%</span></div>
+      </div>
+
+      <div class="glass rounded-xl p-4">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>SPI (Monte Carlo P80)</span>
+          <span class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono" id="kpi-spi-p50">P50: 1.000</span>
+        </div>
+        <div class="text-2xl font-bold text-emerald-400 mt-1" id="kpi-spi">1.000</div>
+        <div class="text-[11px] text-slate-400 mt-1">Desvio P80: <span id="kpi-desvio-risco" class="font-semibold text-amber-300">0,0%</span> | <span id="kpi-prob-estouro" class="text-rose-400 font-bold">P(&gt;4,5%): 0%</span></div>
+      </div>
+
+      <div class="glass rounded-xl p-4">
+        <div class="text-xs text-slate-400">Valor Agregado (EV / PV)</div>
+        <div class="text-xl font-bold text-cyan-300 mt-1" id="kpi-ev">R$ 0,00 MM</div>
+        <div class="text-[11px] text-slate-400 mt-1">CAPEX Baseline: R$ 158,24 MM</div>
+      </div>
+
+      <div class="glass rounded-xl p-4">
+        <div class="text-xs text-slate-400">Fundações Helicoidais</div>
+        <div class="text-2xl font-bold text-white mt-1"><span id="kpi-fund-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
+        <div class="text-[11px] text-emerald-400 mt-1" id="kpi-fund-pct">0,0% concluído</div>
+      </div>
+
+      <div class="glass rounded-xl p-4">
+        <div class="text-xs text-slate-400">Montagem (Autop. + GNEL)</div>
+        <div class="text-2xl font-bold text-white mt-1"><span id="kpi-mont-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
+        <div class="text-[11px] text-cyan-300 mt-1"><span id="kpi-peso-montado">0,0</span> / 2.224,5 ton aço</div>
+      </div>
+
+      <div class="glass rounded-xl p-4">
+        <div class="text-xs text-slate-400">Semáforo de Riscos IA</div>
+        <div class="flex items-center gap-3 mt-1.5">
+          <span class="px-2.5 py-1 rounded bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold text-sm" id="kpi-vermelhos">0 Críticos</span>
+          <span class="px-2.5 py-1 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-sm" id="kpi-amarelos">0 Alertas</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1">30 Alagáveis • 14 Travessias</div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- TAB 1: COCKPIT GEORREFERENCIADO & LINHA DE BALANÇO -->
+    <!-- ================================================================== -->
+    <div id="tab-cockpit" class="tab-pane space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- MAPA LINEAR GEORREFERENCIADO -->
+        <div class="lg:col-span-2 glass rounded-xl p-4 flex flex-col">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h2 class="font-bold text-sm text-white">Mapa Tático Linear Georreferenciado — Torres & Vãos Lançados (SIRGAS 2000 UTM 24K → WGS84)</h2>
+              <p class="text-xs text-slate-400">Clique nas estruturas (0/1 a 37/2) ou passe o mouse sobre os 85 vãos para inspecionar o status de lançamento, grampeamento e jumpers.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-[11px]">
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> Torre Normal</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Atenção</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Risco Crítico</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full border-2 border-cyan-400 inline-block"></span> Alagável</span>
+              <span class="text-slate-600">|</span>
+              <span class="flex items-center gap-1.5 text-emerald-300 font-semibold"><span class="w-5 h-1 bg-emerald-400 inline-block rounded"></span> Vão Lançado</span>
+              <span class="flex items-center gap-1.5 text-amber-300 font-semibold"><span class="w-5 h-0 border-t-2 border-dashed border-amber-400 inline-block"></span> Vão em Roldanas</span>
+              <span class="flex items-center gap-1.5 text-slate-400"><span class="w-5 h-0 border-t-2 border-dashed border-slate-500 inline-block"></span> Vão Não Lançado</span>
+            </div>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- DETALHE DA TORRE SELECIONADA + ÚLTIMOS ALERTAS IA -->
+        <div class="glass rounded-xl p-4 flex flex-col justify-between space-y-4">
+          <div id="painel-torre-detalhe">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <span class="text-xs uppercase tracking-wider text-cyan-400 font-semibold" id="det-lote">Selecione uma Torre no Mapa</span>
+                <h3 class="text-xl font-bold text-white mt-0.5" id="det-titulo">Torre 0/1 (Op. 1)</h3>
+              </div>
+              <span id="det-badge-crit" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                VERDE
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs my-3">
+              <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                <span class="text-slate-400 block">Tipo / Silhueta</span>
+                <strong class="text-white" id="det-tipo">GNAT (Autoportante)</strong>
+              </div>
+              <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                <span class="text-slate-400 block">Altura Útil / Peso Aço</span>
+                <strong class="text-white" id="det-altura-peso">18,0m • 29,0 ton</strong>
+              </div>
+              <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                <span class="text-slate-400 block">Fundação Executiva</span>
+                <strong class="text-cyan-300" id="det-fund">4x HEL-100 (Prof. 6,6m)</strong>
+              </div>
+              <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                <span class="text-slate-400 block">KM Progressivo / Vão</span>
+                <strong class="text-white" id="det-km">KM 0,100 (Vão 363,5m)</strong>
+              </div>
+            </div>
+
+            <div id="det-restricoes" class="space-y-1.5 text-xs mb-3"></div>
+
+            <!-- STATUS DAS 3 ETAPAS -->
+            <div class="space-y-2 border-t border-slate-800 pt-3 text-xs">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">1. Fundação Helicoidal / Stubs:</span>
+                <span id="det-st-fund" class="font-semibold px-2 py-0.5 rounded bg-slate-800">NAO_INICIADO</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">2. Pré-Montagem & Montagem:</span>
+                <span id="det-st-mont" class="font-semibold px-2 py-0.5 rounded bg-slate-800">NAO_INICIADO</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400" id="det-lbl-lanc">3. Lançamento Cabos / OPGW:</span>
+                <span id="det-st-lanc" class="font-semibold px-2 py-0.5 rounded bg-slate-800">NAO_INICIADO</span>
+              </div>
+            </div>
+
+            <div class="mt-3 p-3 rounded-lg bg-slate-900/95 border border-slate-800 text-xs">
+              <div class="font-semibold text-slate-300 mb-1">Parecer do Motor de IA / Último RDO:</div>
+              <p id="det-obs-ia" class="text-slate-400 leading-relaxed">Sem desvios reportados nesta estrutura.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <button onclick="abrirTorreNoAppMobile()" class="w-full py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
+              📲 Inspecionar / Apontar esta Torre no App Mobile do Fiscal
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LINHA DE BALANÇO SINTÉTICA (86 ESTRUTURAS: SE GNA II -> SE CAMPOS 2) -->
+      <div class="glass rounded-xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="font-bold text-sm text-white">Linha de Balanço Linear — Todas as 84 Torres (Séries 0 a 37) + 2 Pórticos</h2>
+            <p class="text-xs text-slate-400">Frente 01 avança da Torre 0/1 → 18/1 (Norte-Sul) | Frente 02 avança da Torre 37/2 → 19/1 (Sul-Norte)</p>
+          </div>
+          <div class="flex gap-3 text-xs">
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Concluído</span>
+            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Em Andamento</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400">Não Iniciado</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto pb-2">
+          <div id="grid-linha-balanco" class="inline-grid grid-flow-col auto-cols-[46px] gap-1 text-[10px]"></div>
+        </div>
+      </div>
+
+      <!-- MOTOR ESTOCÁSTICO DE MONTE CARLO (2.000 ITERAÇÕES BETA-PERT + BERNOULLI) -->
+      <div class="glass rounded-xl p-5 space-y-5 border border-cyan-500/30">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold uppercase">Motor Estocástico Ativo</span>
+              <h2 class="font-bold text-base text-white">Simulação de Risco de Prazo & Exposição Contratual — Modelo de Monte Carlo (2.000 Iterações Beta-PERT)</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              Calibrado com as incertezas reais da engenharia: 12 torres com SPT &gt; 30 (7 sem contingência BSE-M no doc. <code class="text-cyan-300">40-MDE-00071</code>), 30 torres alagáveis (Nota 12.11.1) e 14 travessias críticas (Furnas/Enel/DER-RJ).
+            </p>
+          </div>
+          <div class="flex items-center gap-3 bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800">
+            <div class="text-right">
+              <span class="text-[11px] text-slate-400 block">Probabilidade de Estouro do Limiar (<span id="mc-limiar-label">4,50%</span>)</span>
+              <strong id="mc-prob-estouro" class="text-lg font-extrabold text-rose-400">0,0%</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARDS DE PERCENTIS P10 / P50 / P80 / P90 -->
+        <div id="mc-cards-percentis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+        <!-- HISTOGRAMA DE DISTRIBUIÇÃO & GRÁFICO DE TORNADO (SENSIBILIDADE) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-1">
+          <div class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-xs text-white uppercase tracking-wider">Distribuição de Probabilidade do Atraso (2.000 Sorteios)</h3>
+              <span class="text-[11px] text-slate-400">Verde = Dentro do Limiar | Vermelho = Estouro (&gt; Limiar)</span>
+            </div>
+            <div id="mc-histograma" class="space-y-2 text-xs"></div>
+          </div>
+
+          <div class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-xs text-white uppercase tracking-wider">Gráfico de Tornado — Sensibilidade por Vetor de Risco</h3>
+              <span class="text-[11px] text-slate-400">Participação na Variância do Prazo (%)</span>
+            </div>
+            <div id="mc-tornado" class="space-y-3 text-xs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB 2: CRONOGRAMA MS PROJECT (.MPP) & AVANÇO PROPORCIONAL IA -->
+    <!-- ================================================================== -->
+    <div id="tab-pacotes" class="tab-pane hidden space-y-6">
+      <div class="glass rounded-xl p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 class="font-bold text-base text-white">EAP do MS Project (`03-CRO-14022-619-P-RAI-0001_R0D_06-09-22.mpp`) × Lista de Construção</h2>
+            <p class="text-xs text-slate-400">
+              O avanço físico (%) e o Valor Agregado (EV) de cada pacote construtivo macro são calculados automaticamente pela IA de forma proporcional às torres concluídas em campo.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400 font-medium">Exibir:</label>
+              <select id="filtro-escopo-crono" onchange="renderizarTabelaPacotes()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-semibold">
+                <option value="CAMPO">Pacotes Construtivos e Comissionamento (ID 61 ao 92 — 32 itens)</option>
+                <option value="TODAS">Todas as Atividades da EAP MS Project (ID 1 ao 92 — 92 tarefas)</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400 font-medium">Ordenar por:</label>
+              <select id="select-ordem-crono" onchange="alterarOrdenacaoCronograma(this.value)" class="bg-slate-900 border border-cyan-500/50 rounded-lg px-2.5 py-1.5 text-cyan-300 font-semibold">
+                <option value="uid_asc">ID Relativo / Linha da EAP (1 a 92 ↑)</option>
+                <option value="uid_desc">ID Relativo / Linha da EAP (92 a 1 ↓)</option>
+                <option value="id_tarefa_asc">ID Absoluto / Unique ID .mpp (39 a 197 ↑)</option>
+                <option value="id_tarefa_desc">ID Absoluto / Unique ID .mpp (197 a 39 ↓)</option>
+                <option value="inicio_asc">Data de Início Planejada (Cronológica ↑)</option>
+                <option value="avanco_desc">Maior Avanço Físico IA (% ↓)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase">
+                <th onclick="clicarCabecalhoOrdem('uid')" class="py-2.5 px-3 cursor-pointer hover:text-cyan-300 select-none" title="ID Relativo: Número sequencial da linha na EAP do Gantt (1 a 92)">
+                  ID Relativo (Linha) <span id="sort-icon-uid" class="text-cyan-400">▲</span>
+                </th>
+                <th onclick="clicarCabecalhoOrdem('id_tarefa')" class="py-2.5 px-3 cursor-pointer hover:text-cyan-300 select-none" title="ID Absoluto (Unique ID): Identificador interno imutável de criação da tarefa no banco do MS Project (39 a 197)">
+                  ID Absoluto (UID) <span id="sort-icon-id_tarefa" class="text-slate-600">↕</span>
+                </th>
+                <th class="py-2.5 px-3">Pacote / Atividade (MS Project)</th>
+                <th class="py-2.5 px-3">Etapa</th>
+                <th onclick="clicarCabecalhoOrdem('inicio')" class="py-2.5 px-3 cursor-pointer hover:text-cyan-300 select-none">
+                  Início Planejado <span id="sort-icon-inicio" class="text-slate-600">↕</span>
+                </th>
+                <th class="py-2.5 px-3">Fim Planejado</th>
+                <th class="py-2.5 px-3">Duração</th>
+                <th class="py-2.5 px-3">Torres Vinculadas</th>
+                <th class="py-2.5 px-3">Produtividade Req.</th>
+                <th class="py-2.5 px-3">Valor Planejado (PV)</th>
+                <th onclick="clicarCabecalhoOrdem('avanco')" class="py-2.5 px-3 cursor-pointer hover:text-cyan-300 select-none">
+                  Avanço IA (%) <span id="sort-icon-avanco" class="text-slate-600">↕</span>
+                </th>
+                <th class="py-2.5 px-3">Valor Agregado (EV)</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-pacotes-body" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB 3: CURVA S & TENDÊNCIA IA (BASELINE x REALIZADO x MONTE CARLO) -->
+    <!-- ================================================================== -->
+    <div id="tab-curva-s" class="tab-pane hidden space-y-6">
+      <div class="glass rounded-xl p-5 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold uppercase">Earned Value Analysis (EVA)</span>
+              <h2 class="font-bold text-base text-white">Curva S Executiva — Baseline Planejada (R0D) × Curva Realizada × Tendência Preditiva (Monte Carlo P50 / P80)</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              A Curva Baseline é integrada a partir das datas reais do MS Project (<code class="text-cyan-300">Set/2022 a Out/2023</code>). A partir do ponto de corte atual, a IA projeta a inclinação futura nos cenários <strong class="text-amber-300">P50 (Provável)</strong> e <strong class="text-rose-400">P80 (Conservador AACE)</strong>.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400 font-medium">Disciplina:</label>
+              <select id="select-escopo-curvas" onchange="renderizarCurvaS()" class="bg-slate-900 border border-cyan-500/50 rounded-lg px-3 py-1.5 text-cyan-300 font-semibold">
+                <option value="GLOBAL">Global Consolidado LT 500 kV (100% CAPEX)</option>
+                <option value="FUNDACAO">Fundações Helicoidais & Civil (45% CAPEX)</option>
+                <option value="MONTAGEM">Montagem Eletromecânica Autop. + GNEL (32% CAPEX)</option>
+                <option value="LANCAMENTO">Lançamento de Cabos Condutores & OPGW (21% CAPEX)</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400 font-medium">Unidade:</label>
+              <select id="select-unidade-curvas" onchange="renderizarCurvaS()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white font-semibold">
+                <option value="PCT">Avanço Físico Acumulado (%)</option>
+                <option value="BRL">Valor Agregado Financeiro (R$ Milhões — PV × EV)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESUMO EXECUTIVO DA CURVA S NO PONTO DE CORTE -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block">Planejado Baseline no Corte (<span id="cs-mes-corte-1">Mai/23</span>)</span>
+            <strong id="cs-kpi-planejado" class="text-lg font-bold text-sky-400 mt-0.5 block">0,0%</strong>
+            <span id="cs-kpi-pv-brl" class="text-[11px] text-slate-400">PV: R$ 0,00 MM</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block">Realizado Acumulado Campo (<span id="cs-mes-corte-2">Mai/23</span>)</span>
+            <strong id="cs-kpi-realizado" class="text-lg font-bold text-emerald-400 mt-0.5 block">0,0%</strong>
+            <span id="cs-kpi-ev-brl" class="text-[11px] text-slate-400">EV: R$ 0,00 MM</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block">Desvio Acumulado no Corte (EV − PV)</span>
+            <strong id="cs-kpi-desvio" class="text-lg font-bold text-amber-400 mt-0.5 block">0,0%</strong>
+            <span id="cs-kpi-desvio-status" class="text-[11px] text-slate-400">Dentro do limiar</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block">Previsão de Conclusão (100% Escopo)</span>
+            <strong id="cs-kpi-termino-p80" class="text-sm font-bold text-rose-400 mt-1 block">P80: 2023-11-08</strong>
+            <span id="cs-kpi-termino-p50" class="text-[11px] text-amber-300">P50: 2023-11-03 | Baseline: 2023-10-15</span>
+          </div>
+        </div>
+
+        <!-- LEGENDA DO GRÁFICO -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 px-4 py-2.5 rounded-xl border border-slate-800 text-xs">
+          <div class="flex flex-wrap items-center gap-5">
+            <span class="flex items-center gap-2 font-semibold text-sky-300">
+              <span class="w-6 h-1 bg-sky-400 inline-block rounded"></span> 1. Curva Baseline Planejada (MS Project R0D)
+            </span>
+            <span class="flex items-center gap-2 font-semibold text-emerald-300">
+              <span class="w-6 h-1 bg-emerald-400 inline-block rounded"></span> 2. Curva Realizada Atual (Campo / IA)
+            </span>
+            <span class="flex items-center gap-2 font-semibold text-amber-300">
+              <span class="w-6 h-0 border-t-2 border-dashed border-amber-400 inline-block"></span> 3. Tendência IA — P50 (Mais Provável)
+            </span>
+            <span class="flex items-center gap-2 font-semibold text-rose-300">
+              <span class="w-6 h-0 border-t-2 border-dashed border-rose-400 inline-block"></span> 4. Tendência IA — P80 (Conservador AACE)
+            </span>
+          </div>
+          <span class="text-[11px] text-slate-400">Passe o mouse sobre os pontos mensais para inspecionar os valores</span>
+        </div>
+
+        <!-- CONTAINER DO GRÁFICO SVG DA CURVA S -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800/90 overflow-x-auto">
+          <div id="svg-curva-s-container" class="min-w-[820px] w-full"></div>
+        </div>
+
+        <!-- TABELA ANALÍTICA MÊS A MÊS -->
+        <div class="space-y-2 pt-2">
+          <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider">Quadro Analítico Mensal — Evolução Planejada × Realizada × Tendência Preditiva (Set/2022 a Nov/2023)</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase">
+                  <th class="py-2 px-3">Mês / Período</th>
+                  <th class="py-2 px-3 text-sky-300">Baseline Planejada (%)</th>
+                  <th class="py-2 px-3 text-sky-300">Valor Planejado (PV)</th>
+                  <th class="py-2 px-3 text-emerald-300">Realizado Campo (%)</th>
+                  <th class="py-2 px-3 text-emerald-300">Valor Agregado (EV)</th>
+                  <th class="py-2 px-3 text-amber-300">Tendência IA P50 (%)</th>
+                  <th class="py-2 px-3 text-rose-300">Tendência IA P80 (%)</th>
+                  <th class="py-2 px-3">Desvio / Situação</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-curva-s-body" class="divide-y divide-slate-800/60"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB 3: ORDEM DE BATALHA (OB-001) & ORDENS DE PRODUÇÃO (OPs) -->
+    <!-- ================================================================== -->
+    <div id="tab-ordens" class="tab-pane hidden space-y-6">
+      <!-- ALERTAS DE VALIDAÇÃO DE INTEGRIDADE DA BASELINE -->
+      <div class="glass rounded-xl p-5">
+        <h2 class="font-bold text-sm text-cyan-300 uppercase tracking-wider mb-3">
+          🔍 Diagnóstico de Validação Automatizada da Baseline (MS Project R0D × Lista de Construção Rev.5)
+        </h2>
+        <div id="lista-alertas-integridade" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs"></div>
+      </div>
+
+      <!-- ORDEM DE BATALHA ESTRATÉGICA (OB-001) -->
+      <div class="glass rounded-xl p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <span class="text-xs font-bold text-emerald-400 uppercase">Plano de Ataque Estratégico (Gerado pós-validação da Baseline)</span>
+            <h2 class="text-lg font-bold text-white" id="ob-titulo">OB-001 — Ordem de Batalha Inicial</h2>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            Limiar de Risco Tolerável: 4,50%
+          </span>
+        </div>
+        <p class="text-xs text-slate-300 bg-slate-900/90 p-3 rounded border border-slate-800" id="ob-justificativa"></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="ob-frentes"></div>
+
+        <h3 class="font-bold text-xs text-slate-300 uppercase pt-2">Dimensionamento de Recursos e Produtividades Requeridas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="ob-recursos"></div>
+      </div>
+
+      <!-- ORDENS DE PRODUÇÃO TÁTICAS GERADAS PELA IA -->
+      <div class="glass rounded-xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-rose-400 uppercase">Gatilho Dinâmico por Desvio > Limiar de Risco (4,50%)</span>
+            <h2 class="text-lg font-bold text-white">Ordens de Produção Táticas Emitidas pelo Motor de IA</h2>
+          </div>
+        </div>
+        <div id="lista-ordens-producao" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB 4: APP MOBILE DO FISCAL (OFFLINE-FIRST SQLITE + GEOFENCING) -->
+    <!-- ================================================================== -->
+    <div id="tab-mobile" class="tab-pane hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- SIMULADOR DO SMARTPHONE DO FISCAL -->
+        <div class="lg:col-span-5 bg-slate-950 border-4 border-slate-800 rounded-[2rem] p-5 shadow-2xl max-w-md mx-auto w-full space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">App Mobile Campo • SQLite Local</span>
+              <h3 class="text-base font-bold text-white">Vistoria & Protocolo Anexo I</h3>
+            </div>
+            <label class="flex items-center gap-1.5 cursor-pointer text-xs">
+              <input type="checkbox" id="chk-modo-offline" onchange="toggleModoOffline()" class="rounded bg-slate-800 border-slate-600 text-amber-500" />
+              <span id="lbl-status-rede" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold text-[11px]">ONLINE (4G)</span>
+            </label>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Selecionar Estrutura (Série/Torre — 84 Torres):</label>
+              <select id="mob-select-torre" onchange="aoMudarTorreMobile()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-semibold"></select>
+            </div>
+
+            <!-- INFO DINÂMICA DA TORRE NO CELULAR -->
+            <div id="mob-card-engenharia" class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-[11px]"></div>
+
+            <!-- GEOFENCING 50M -->
+            <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-300">📍 Validação GPS (Cerca <= 50m):</span>
+                <button type="button" onclick="posicionarGpsNaTorre()" class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[11px] font-semibold">
+                  Capturar GPS na Estaca
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <span class="text-[10px] text-slate-400">Latitude Fiscal</span>
+                  <input type="number" step="0.000001" id="mob-lat" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white" />
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400">Longitude Fiscal</span>
+                  <input type="number" step="0.000001" id="mob-lon" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <!-- ETAPA E STATUS RÁPIDO -->
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 mb-1">Etapa Construtiva:</label>
+                <select id="mob-etapa" onchange="renderChecklistDinamico()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white">
+                  <option value="FUNDACAO">1. Fundação Helicoidal</option>
+                  <option value="MONTAGEM">2. Montagem Estrutura</option>
+                  <option value="LANCAMENTO">3. Lançamento de Cabos</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">Status Físico:</label>
+                <select id="mob-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white font-semibold">
+                  <option value="CONCLUIDO">✅ CONCLUÍDO (100%)</option>
+                  <option value="EM_ANDAMENTO">⏳ EM ANDAMENTO</option>
+                  <option value="NAO_INICIADO">⚪ NÃO INICIADO</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- CHECKLIST DINÂMICO (ADAPTADO AO PROCEDIMENTO 06-PRO-00002 ANEXO I) -->
+            <div id="mob-checklist-container" class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2"></div>
+
+            <!-- DITADO POR VOZ / RDO TEXTUAL -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-slate-400">Ocorrências de Campo / Ditado por Voz (IA):</label>
+                <button type="button" onclick="preencherExemploVoz()" class="text-[11px] text-amber-400 hover:underline">
+                  🎙️ Simular Ditado de Risco
+                </button>
+              </div>
+              <textarea id="mob-obs" rows="3" placeholder="Ex: Encontrada camada impenetrável SPT > 30 ou alagamento superando Delta H de 60cm..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"></textarea>
+            </div>
+
+            <button type="button" onclick="salvarApontamentoMobile()" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg transition">
+              💾 Registrar Vistoria (Salvar SQLite / Sincronizar)
+            </button>
+
+            <div id="mob-feedback" class="hidden p-2.5 rounded-lg text-xs"></div>
+          </div>
+        </div>
+
+        <!-- FILA OFFLINE (SYNC ENGINE) + LOG DE APONTAMENTOS PROCESSADOS PELA IA -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="glass rounded-xl p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-sm text-white">Fila Local SQLite (Sync Engine Assíncrono Prioritário)</h3>
+                <p class="text-xs text-slate-400">Vistorias salvas sem internet aguardando detecção de sinal para upload em lote (batch).</p>
+              </div>
+              <button onclick="sincronizarFilaOffline()" class="px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
+                🔄 Sincronizar Fila Agora (<span id="count-fila-offline">0</span>)
+              </button>
+            </div>
+            <div id="lista-fila-offline" class="text-xs text-slate-400">Nenhum registro pendente na fila offline do aparelho.</div>
+          </div>
+
+          <div class="glass rounded-xl p-5 space-y-3">
+            <h3 class="font-bold text-sm text-white">Histórico de Apontamentos Sincronizados & Classificação NLP da IA</h3>
+            <div id="lista-apontamentos-nuvem" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB 5: GOVERNANÇA & REVISÃO DE BASELINE -->
+    <!-- ================================================================== -->
+    <div id="tab-baseline" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass rounded-xl p-5 space-y-4">
+          <h2 class="font-bold text-base text-white">Nova Revisão de Baseline (Mudança Contratual / Engenharia)</h2>
+          <p class="text-xs text-slate-400">
+            Registra uma nova versão auditável da Baseline (ex: revisão de tipificação de fundações de Estaca Helicoidal para BSE-M ou aditivo de prazo) e recalcula a Ordem de Batalha.
+          </p>
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Título da Nova Baseline:</label>
+              <input type="text" id="rev-titulo" value="Baseline V2 - Revisão Geotécnica & Reprogramação Travessias 345kV" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Motivo Técnico / Contratual:</label>
+              <textarea id="rev-motivo" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">Adequação de fundações em trechos com SPT > 30 (Nota 10.2.c) e ajuste de janela de desligamento junto à Furnas/ENEL.</textarea>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Novo Limiar de Risco Tolerável (%):</label>
+              <input type="number" step="0.5" id="rev-limiar" value="5.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+            </div>
+            <button onclick="salvarRevisaoBaseline()" class="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition">
+               Travar Nova Baseline e Gerar Nova Ordem de Batalha
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-xl p-5 space-y-3">
+          <h2 class="font-bold text-base text-white">Histórico de Versões da Baseline (Logs de Auditoria)</h2>
+          <div id="lista-revisoes-baseline" class="space-y-2.5 text-xs"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let cockpitData = null;
+    let mapInstance = null;
+    let markersLayer = null;
+    let lineLayer = null;
+    let torreSelecionada = "0/1";
+    let filaOfflineSQLite = JSON.parse(localStorage.getItem("lt_fila_sqlite_v1") || "[]");
+
+    function formatBRL(v) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-cyan-400', 'text-cyan-300');
+        btn.classList.add('border-transparent', 'text-slate-400');
+      });
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('border-cyan-400', 'text-cyan-300');
+        activeBtn.classList.remove('border-transparent', 'text-slate-400');
+      }
+      if (tabId === 'tab-cockpit' && mapInstance) {
+        setTimeout(() => mapInstance.invalidateSize(), 150);
+      }
+    }
+
+    async function carregarCockpit() {
+      const res = await fetch('/api/cockpit');
+      cockpitData = await res.json();
+      renderizarKPIs();
+      renderizarMonteCarlo();
+      renderizarCurvaS();
+      renderizarMapa();
+      renderizarLinhaBalanco();
+      renderizarDetalheTorre(torreSelecionada);
+      renderizarTabelaPacotes();
+      renderizarOrdens();
+      popularSelectMobile();
+      renderizarApontamentosNuvem();
+      renderizarRevisoesBaseline();
+      atualizarUIierFilaOffline();
+    }
+
+    function renderizarCurvaS() {
+      const cs = cockpitData.curva_s;
+      const mc = cockpitData.monte_carlo;
+      if (!cs || !cs.escopos) return;
+
+      const escopo = (document.getElementById('select-escopo-curvas') || {}).value || 'GLOBAL';
+      const unidade = (document.getElementById('select-unidade-curvas') || {}).value || 'PCT';
+      const dados = cs.escopos[escopo] || cs.escopos.GLOBAL;
+      const meses = cs.rotulos_meses || [];
+      const idxCorte = dados.indice_mes_corte ?? 8;
+
+      // Atualizar KPIs da Curva S no Ponto de Corte
+      document.getElementById('cs-mes-corte-1').textContent = dados.rotulo_mes_corte;
+      document.getElementById('cs-mes-corte-2').textContent = dados.rotulo_mes_corte;
+      document.getElementById('cs-kpi-planejado').textContent = `${dados.planejado_no_corte_pct.toFixed(1)}%`;
+      document.getElementById('cs-kpi-pv-brl').textContent = `PV no Corte: ${formatBRL((dados.planejado_no_corte_pct / 100.0) * dados.pv_total_brl)} (Total: R$ ${(dados.pv_total_brl / 1e6).toFixed(2)} MM)`;
+      document.getElementById('cs-kpi-realizado').textContent = `${dados.avanco_atual_pct.toFixed(1)}%`;
+      document.getElementById('cs-kpi-ev-brl').textContent = `EV Acumulado: ${formatBRL(dados.ev_atual_brl)}`;
+
+      const desvioEl = document.getElementById('cs-kpi-desvio');
+      const sinal = dados.desvio_no_corte_pct >= 0 ? '+' : '';
+      desvioEl.textContent = `${sinal}${dados.desvio_no_corte_pct.toFixed(2)}%`;
+      desvioEl.className = `text-lg font-bold mt-0.5 block ${dados.desvio_no_corte_pct >= -1.5 ? 'text-emerald-400' : (dados.desvio_no_corte_pct >= -4.5 ? 'text-amber-400' : 'text-rose-400')}`;
+      document.getElementById('cs-kpi-desvio-status').textContent = Math.abs(dados.desvio_no_corte_pct) > (cockpitData.kpis_tempo_real.limiar_risco_baseline_pct || 4.5)
+        ? '⚠️ Acima do Limiar da Baseline — Ordem de Produção Ativa'
+        : '✅ Dentro da margem tática de tolerância';
+
+      if (mc && mc.percentis) {
+        document.getElementById('cs-kpi-termino-p80').textContent = `P80 (Tático): ${mc.percentis.P80.data_termino_projetada} (+${mc.percentis.P80.atraso_dias}d)`;
+        document.getElementById('cs-kpi-termino-p50').textContent = `P50: ${mc.percentis.P50.data_termino_projetada} (+${mc.percentis.P50.atraso_dias}d) | Baseline: 2023-10-15`;
+      }
+
+      // Selecionar séries conforme unidade (PCT ou BRL em Milhões)
+      const maxVal = unidade === 'PCT' ? 100.0 : (dados.pv_total_brl / 1e6);
+      const sBaseline = unidade === 'PCT' ? dados.baseline_pct : dados.baseline_pv_brl.map(v => v / 1e6);
+      const sReal = unidade === 'PCT' ? dados.realizado_pct : dados.realizado_ev_brl.map(v => v !== null ? v / 1e6 : null);
+      const sP50 = unidade === 'PCT' ? dados.tendencia_p50_pct : dados.tendencia_p50_ev_brl.map(v => v !== null ? v / 1e6 : null);
+      const sP80 = unidade === 'PCT' ? dados.tendencia_p80_pct : dados.tendencia_p80_ev_brl.map(v => v !== null ? v / 1e6 : null);
+
+      // Construir SVG Vetorial Interativo (1080 x 380)
+      const W = 1080, H = 380;
+      const padL = 68, padR = 35, padT = 28, padB = 46;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+      const n = Math.max(2, meses.length);
+
+      const xPos = (i) => padL + (i / (n - 1)) * plotW;
+      const yPos = (val) => padT + plotH - (Math.max(0, Math.min(maxVal, val)) / max(0.001, maxVal)) * plotH;
+      function max(a, b) { return a > b ? a : b; }
+
+      // Grades horizontais (0%, 25%, 50%, 75%, 100%)
+      let gridLines = '';
+      for (let g = 0; g <= 4; g++) {
+        const frac = g / 4;
+        const y = padT + plotH - frac * plotH;
+        const label = unidade === 'PCT' ? `${(frac * 100).toFixed(0)}%` : `R$ ${(frac * maxVal).toFixed(1)}M`;
+        gridLines += `
+          <line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#1e293b" stroke-width="1" stroke-dasharray="${g === 0 || g === 4 ? 'none' : '4,4'}" />
+          <text x="${padL - 10}" y="${y + 4}" text-anchor="end" fill="#94a3b8" font-size="11" font-family="monospace">${label}</text>
+        `;
+      }
+
+      // Rótulos de meses no eixo X + linha vertical de corte
+      let xLabels = '';
+      meses.forEach((m, i) => {
+        const x = xPos(i);
+        const isCorte = i === idxCorte;
+        xLabels += `
+          <line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + plotH}" stroke="${isCorte ? '#10b981' : '#0f172a'}" stroke-width="${isCorte ? '1.5' : '1'}" stroke-dasharray="${isCorte ? '5,3' : 'none'}" />
+          <text x="${x}" y="${H - 14}" text-anchor="middle" fill="${isCorte ? '#34d399' : '#94a3b8'}" font-weight="${isCorte ? 'bold' : 'normal'}" font-size="11">${m}</text>
+        `;
+        if (isCorte) {
+          xLabels += `
+            <rect x="${x - 54}" y="${padT - 20}" width="108" height="17" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+            <text x="${x}" y="${padT - 8}" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="bold">Corte: ${m}</text>
+          `;
+        }
+      });
+
+      // Gerar caminhos (polylines) e área sombreada entre P50 e P80
+      const ptsBaseline = sBaseline.map((v, i) => `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}`).join(' ');
+      const ptsReal = sReal.map((v, i) => v !== null ? `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}` : null).filter(Boolean).join(' ');
+      const ptsP50 = sP50.map((v, i) => v !== null ? `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}` : null).filter(Boolean).join(' ');
+      const ptsP80 = sP80.map((v, i) => v !== null ? `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}` : null).filter(Boolean).join(' ');
+
+      // Polígono do envelope de incerteza Monte Carlo (entre P50 e P80)
+      const idxsFuturos = sP50.map((v, i) => v !== null ? i : null).filter(i => i !== null);
+      let polyEnvelope = '';
+      if (idxsFuturos.length > 1) {
+        const ida = idxsFuturos.map(i => `${xPos(i).toFixed(1)},${yPos(sP50[i]).toFixed(1)}`).join(' ');
+        const volta = [...idxsFuturos].reverse().map(i => `${xPos(i).toFixed(1)},${yPos(sP80[i]).toFixed(1)}`).join(' ');
+        polyEnvelope = `<polygon points="${ida} ${volta}" fill="rgba(244, 63, 94, 0.14)" />`;
+      }
+
+      // Pontos interativos com tooltips
+      let circles = '';
+      meses.forEach((m, i) => {
+        const xb = xPos(i).toFixed(1);
+        const yb = yPos(sBaseline[i]).toFixed(1);
+        const unitSuf = unidade === 'PCT' ? '%' : ' MM';
+        circles += `<circle cx="${xb}" cy="${yb}" r="4" fill="#38bdf8" stroke="#0f172a" stroke-width="1.5"><title>${m} — Baseline Planejada: ${sBaseline[i].toFixed(2)}${unitSuf}</title></circle>`;
+
+        if (sReal[i] !== null) {
+          const yr = yPos(sReal[i]).toFixed(1);
+          circles += `<circle cx="${xb}" cy="${yr}" r="${i === idxCorte ? 6 : 4.5}" fill="#10b981" stroke="#0f172a" stroke-width="1.5"><title>${m} — Realizado Campo: ${sReal[i].toFixed(2)}${unitSuf}</title></circle>`;
+        }
+        if (sP50[i] !== null && i > idxCorte) {
+          const yp50 = yPos(sP50[i]).toFixed(1);
+          circles += `<circle cx="${xb}" cy="${yp50}" r="3.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1"><title>${m} — Tendência IA P50: ${sP50[i].toFixed(2)}${unitSuf}</title></circle>`;
+        }
+        if (sP80[i] !== null && i > idxCorte) {
+          const yp80 = yPos(sP80[i]).toFixed(1);
+          circles += `<circle cx="${xb}" cy="${yp80}" r="3.5" fill="#fb7185" stroke="#0f172a" stroke-width="1"><title>${m} — Tendência IA P80 (Monte Carlo): ${sP80[i].toFixed(2)}${unitSuf}</title></circle>`;
+        }
+      });
+
+      document.getElementById('svg-curva-s-container').innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none">
+          ${gridLines}
+          ${xLabels}
+          ${polyEnvelope}
+          <polyline fill="none" stroke="#38bdf8" stroke-width="3" points="${ptsBaseline}" />
+          ${ptsP50 ? `<polyline fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="6,4" points="${ptsP50}" />` : ''}
+          ${ptsP80 ? `<polyline fill="none" stroke="#fb7185" stroke-width="2.5" stroke-dasharray="5,4" points="${ptsP80}" />` : ''}
+          ${ptsReal ? `<polyline fill="none" stroke="#10b981" stroke-width="3.5" points="${ptsReal}" />` : ''}
+          ${circles}
+        </svg>
+      `;
+
+      // Preencher Tabela Analítica Mensal
+      const tbody = document.getElementById('tabela-curva-s-body');
+      tbody.innerHTML = '';
+      meses.forEach((m, i) => {
+        const isCorte = i === idxCorte;
+        const blPct = dados.baseline_pct[i];
+        const blPv = dados.baseline_pv_brl[i];
+        const rPct = dados.realizado_pct[i];
+        const rEv = dados.realizado_ev_brl[i];
+        const p50Pct = dados.tendencia_p50_pct[i];
+        const p80Pct = dados.tendencia_p80_pct[i];
+
+        let statusHtml = '<span class="text-slate-500">Horizonte Futuro</span>';
+        if (rPct !== null) {
+          const diff = rPct - blPct;
+          const cor = diff >= -1.5 ? 'text-emerald-400' : (diff >= -4.5 ? 'text-amber-300' : 'text-rose-400');
+          statusHtml = `<span class="font-mono font-bold ${cor}">${diff >= 0 ? '+' : ''}${diff.toFixed(2)}% ${isCorte ? '📍 (Corte Atual)' : ''}</span>`;
+        } else if (p80Pct !== null) {
+          const diffP80 = p80Pct - blPct;
+          statusHtml = `<span class="font-mono text-rose-300">${diffP80 >= 0 ? '+' : ''}${diffP80.toFixed(2)}% (Proj. P80)</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = isCorte ? 'bg-emerald-950/30 border-l-4 border-emerald-400 font-semibold' : 'hover:bg-slate-800/40';
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-mono ${isCorte ? 'text-emerald-300 font-bold' : 'text-white'}">${m}</td>
+          <td class="py-2 px-3 font-mono text-sky-300">${blPct.toFixed(1)}%</td>
+          <td class="py-2 px-3 font-mono text-slate-300">${formatBRL(blPv)}</td>
+          <td class="py-2 px-3 font-mono ${rPct !== null ? 'text-emerald-400 font-bold' : 'text-slate-600'}">${rPct !== null ? rPct.toFixed(1) + '%' : '-'}</td>
+          <td class="py-2 px-3 font-mono ${rEv !== null ? 'text-emerald-300' : 'text-slate-600'}">${rEv !== null ? formatBRL(rEv) : '-'}</td>
+          <td class="py-2 px-3 font-mono ${p50Pct !== null ? 'text-amber-300' : 'text-slate-600'}">${p50Pct !== null ? p50Pct.toFixed(1) + '%' : '-'}</td>
+          <td class="py-2 px-3 font-mono ${p80Pct !== null ? 'text-rose-300 font-semibold' : 'text-slate-600'}">${p80Pct !== null ? p80Pct.toFixed(1) + '%' : '-'}</td>
+          <td class="py-2 px-3">${statusHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderizarKPIs() {
+      const k = cockpitData.kpis_tempo_real;
+      const bl = cockpitData.baseline_ativa;
+      document.getElementById('badge-baseline').textContent = `Baseline V${bl.versao || 1} (${bl.status || 'ATIVA'})`;
+      document.getElementById('kpi-avanco-global').textContent = `${k.avanco_global_pct.toFixed(1)}%`;
+      document.getElementById('kpi-meta-periodo').textContent = `${k.meta_planejada_pct.toFixed(1)}%`;
+      
+      const spiEl = document.getElementById('kpi-spi');
+      spiEl.textContent = k.spi.toFixed(3);
+      spiEl.className = `text-2xl font-bold mt-1 ${k.spi >= 0.96 ? 'text-emerald-400' : (k.spi >= 0.92 ? 'text-amber-400' : 'text-rose-500')}`;
+
+      const spiP50El = document.getElementById('kpi-spi-p50');
+      if (spiP50El && k.spi_p50) spiP50El.textContent = `P50: ${k.spi_p50.toFixed(3)}`;
+
+      document.getElementById('kpi-desvio-risco').textContent = `${k.desvio_prazo_risco_pct.toFixed(2)}%`;
+      const probEl = document.getElementById('kpi-prob-estouro');
+      if (probEl && k.probabilidade_estouro_limiar_pct !== undefined) {
+        probEl.textContent = `P(>${k.limiar_risco_baseline_pct.toFixed(1)}%): ${k.probabilidade_estouro_limiar_pct.toFixed(0)}%`;
+      }
+      document.getElementById('kpi-ev').textContent = `R$ ${(k.ev_agregado_atual_brl / 1e6).toFixed(2)} MM`;
+      document.getElementById('kpi-fund-conc').textContent = k.torres_fundacao_concluidas;
+      document.getElementById('kpi-fund-pct').textContent = `${k.avanco_fundacao_pct.toFixed(1)}% ponderado`;
+      document.getElementById('kpi-mont-conc').textContent = k.torres_montagem_concluidas;
+      document.getElementById('kpi-peso-montado').textContent = k.peso_aco_montado_ton.toFixed(1);
+      document.getElementById('kpi-vermelhos').textContent = `${k.alertas_vermelhos} Críticos`;
+      document.getElementById('kpi-amarelos').textContent = `${k.alertas_amarelos} Alertas`;
+      document.getElementById('count-op').textContent = cockpitData.ordens_producao.length;
+    }
+
+    function renderizarMonteCarlo() {
+      const mc = cockpitData.monte_carlo;
+      if (!mc) return;
+
+      document.getElementById('mc-limiar-label').textContent = `${mc.limiar_risco_baseline_pct.toFixed(2)}% (+${mc.limiar_risco_baseline_dias}d)`;
+      const probEl = document.getElementById('mc-prob-estouro');
+      probEl.textContent = `${mc.probabilidade_estouro_limiar_pct.toFixed(1)}% das iterações`;
+      probEl.className = `text-lg font-extrabold ${mc.probabilidade_estouro_limiar_pct >= 50 ? 'text-rose-400' : (mc.probabilidade_estouro_limiar_pct >= 20 ? 'text-amber-400' : 'text-emerald-400')}`;
+
+      const cardsDiv = document.getElementById('mc-cards-percentis');
+      cardsDiv.innerHTML = '';
+      const ordemChaves = ['P10', 'P50', 'P80', 'P90'];
+      ordemChaves.forEach(chave => {
+        const p = mc.percentis[chave];
+        if (!p) return;
+        const destaqueP80 = chave === 'P80';
+        const estourou = p.desvio_prazo_pct > mc.limiar_risco_baseline_pct;
+        cardsDiv.innerHTML += `
+          <div class="p-4 rounded-xl ${destaqueP80 ? 'bg-cyan-950/30 border-2 border-cyan-400/70' : 'bg-slate-900/90 border border-slate-800'} space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold ${destaqueP80 ? 'text-cyan-300' : 'text-slate-300'}">${p.rotulo}</span>
+              <span class="px-2 py-0.5 rounded font-mono font-bold ${estourou ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}">
+                +${p.atraso_dias} dias (${p.desvio_prazo_pct.toFixed(2)}%)
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+              <div>
+                <span class="text-slate-400 block text-[10px]">SPI Projetado</span>
+                <strong class="text-sm font-mono ${p.spi_projetado >= 0.955 ? 'text-emerald-400' : 'text-amber-300'}">${p.spi_projetado.toFixed(3)}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">Término Projetado</span>
+                <strong class="text-sm font-mono text-white">${p.data_termino_projetada}</strong>
+              </div>
+            </div>
+            <div class="pt-1 border-t border-slate-800/80 flex items-center justify-between">
+              <span class="text-slate-400 text-[11px]">VaR Multa (Cláus. 19.2.3):</span>
+              <strong class="font-mono ${estourou ? 'text-rose-400' : 'text-slate-300'}">${formatBRL(p.var_multa_contratual_brl)}</strong>
+            </div>
+          </div>
+        `;
+      });
+
+      // Renderizar Histograma
+      const histDiv = document.getElementById('mc-histograma');
+      histDiv.innerHTML = '';
+      const maxFreq = Math.max(1, ...mc.histograma.map(h => h.frequencia_pct));
+      mc.histograma.forEach(b => {
+        const largPct = Math.round((b.frequencia_pct / maxFreq) * 100);
+        const corBarra = b.acima_limiar ? 'bg-rose-500' : 'bg-emerald-400';
+        histDiv.innerHTML += `
+          <div class="grid grid-cols-12 items-center gap-2">
+            <div class="col-span-4 font-mono text-[11px] text-slate-300 truncate" title="${b.faixa_dias} (${b.faixa_desvio_pct})">
+              ${b.faixa_dias} <span class="text-slate-500">(${b.faixa_desvio_pct})</span>
+            </div>
+            <div class="col-span-6 bg-slate-800 h-3 rounded overflow-hidden">
+              <div class="${corBarra} h-full transition-all" style="width: ${largPct}%"></div>
+            </div>
+            <div class="col-span-2 text-right font-mono font-bold ${b.acima_limiar ? 'text-rose-300' : 'text-emerald-300'}">
+              ${b.frequencia_pct.toFixed(1)}%
+            </div>
+          </div>
+        `;
+      });
+
+      // Renderizar Tornado de Sensibilidade
+      const tornDiv = document.getElementById('mc-tornado');
+      tornDiv.innerHTML = '';
+      mc.tornado_sensibilidade.forEach(t => {
+        const corMap = {
+          rose: 'bg-rose-500 text-rose-300',
+          amber: 'bg-amber-400 text-amber-300',
+          cyan: 'bg-cyan-400 text-cyan-300',
+          purple: 'bg-purple-400 text-purple-300'
+        };
+        const barColor = (corMap[t.cor] || 'bg-cyan-400').split(' ')[0];
+        tornDiv.innerHTML += `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="font-semibold text-slate-200 truncate pr-2">${t.driver}</span>
+              <span class="font-mono font-bold text-white whitespace-nowrap">${t.participacao_variancia_pct.toFixed(1)}% (+${t.impacto_medio_dias}d méd.)</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div class="${barColor} h-full" style="width: ${Math.min(100, t.participacao_variancia_pct)}%"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderizarMapa() {
+      if (!mapInstance) {
+        mapInstance = L.map('map').setView([-21.845, -41.180], 12);
+
+        const camadaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics'
+        });
+        const camadaOpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        });
+        const camadaEscura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap & CartoDB'
+        });
+
+        // Inicia com Mapa Topográfico/Viário + opção de Satélite e Escuro no canto superior direito
+        camadaOpenStreetMap.addTo(mapInstance);
+        L.control.layers({
+          "Mapa Viário / Topográfico (OSM)": camadaOpenStreetMap,
+          "Imagem de Terreno (Esri World)": camadaSatelite,
+          "Modo Tático Escuro (CartoDB)": camadaEscura
+        }).addTo(mapInstance);
+
+        markersLayer = L.layerGroup().addTo(mapInstance);
+        lineLayer = L.layerGroup().addTo(mapInstance);
+      }
+      markersLayer.clearLayers();
+      lineLayer.clearLayers();
+
+      const coordsLinha = [];
+      const estruturasValidas = cockpitData.estruturas.filter(e => e.latitude && e.longitude);
+
+      // 1. Desenhar os 85 Vãos Individuais (Torre i -> Torre i+1) com cor conforme o status de Lançamento
+      for (let i = 0; i < estruturasValidas.length - 1; i++) {
+        const estOrig = estruturasValidas[i];
+        const estDest = estruturasValidas[i + 1];
+        const p1 = [estOrig.latitude, estOrig.longitude];
+        const p2 = [estDest.latitude, estDest.longitude];
+
+        let spanColor = '#475569'; // Cinza/Azulado (Não lançado)
+        let spanWeight = 2.5;
+        let spanDash = '4, 6';
+        let spanOpacity = 0.75;
+        let descStatusVao = 'NÃO LANÇADO (Apenas faixa/eixo)';
+
+        if (estOrig.status_lancamento === 'CONCLUIDO') {
+          spanColor = '#10b981'; // Verde Esmeralda Sólido (Vão Lançado e Finalizado)
+          spanWeight = 5.0;
+          spanDash = null;
+          spanOpacity = 0.95;
+          descStatusVao = estOrig.arranjo_isolamento === 'ANCORAGEM'
+            ? 'CONCLUÍDO (Vão Lançado + Jumper Fechado)'
+            : 'CONCLUÍDO (Vão Lançado + Grampeado)';
+        } else if (estOrig.status_lancamento === 'EM_ANDAMENTO') {
+          if (estOrig.criticidade_ia === 'VERMELHO' && estOrig.ultimo_risco_categoria === 'FUNDIARIO_AMBIENTAL') {
+            spanColor = '#f43f5e'; // Vermelho (Vão retido por travessia crítica)
+            spanWeight = 5.5;
+            spanDash = '6, 4';
+            spanOpacity = 0.95;
+            descStatusVao = 'BLOQUEADO EM TRAVESSIA CRÍTICA';
+          } else {
+            spanColor = '#f59e0b'; // Âmbar Tracejado (Cabo em roldanas / nivelamento)
+            spanWeight = 4.5;
+            spanDash = '8, 5';
+            spanOpacity = 0.95;
+            descStatusVao = estOrig.arranjo_isolamento === 'ANCORAGEM'
+              ? 'EM ANDAMENTO (Aguardando Fechamento de Jumper)'
+              : 'EM ANDAMENTO (Cabos em Roldanas — Aguardando Grampeamento)';
+          }
+        }
+
+        const segPoly = L.polyline([p1, p2], {
+          color: spanColor,
+          weight: spanWeight,
+          opacity: spanOpacity,
+          dashArray: spanDash
+        });
+
+        const critFim = estOrig.arranjo_isolamento === 'ANCORAGEM' ? 'Fechamento de Jumper (ID 89)' : 'Grampeamento (ID 86)';
+        segPoly.bindTooltip(
+          `<b>Vão: ${estOrig.codigo_projeto} → ${estDest.codigo_projeto} (${estOrig.vao_vante_m.toFixed(1)} m)</b><br>` +
+          `Status do Vão: <b>${descStatusVao}</b><br>` +
+          `Critério Finalização (${estOrig.arranjo_isolamento}): <b>${critFim}</b>` +
+          `${estOrig.travessia_critica ? `<br>⚡ <b>${estOrig.travessia_critica}</b>` : ''}`,
+          { sticky: true, direction: 'top' }
+        );
+
+        segPoly.on('click', () => {
+          torreSelecionada = estOrig.codigo_projeto;
+          renderizarDetalheTorre(estOrig.codigo_projeto);
+        });
+
+        segPoly.addTo(lineLayer);
+      }
+
+      // 2. Desenhar os marcadores de cada Torre / Pórtico acima dos vãos
+      estruturasValidas.forEach(est => {
+        coordsLinha.push([est.latitude, est.longitude]);
+
+        let fillColor = '#10b981'; // VERDE (Concluído/Normal)
+        if (est.criticidade_ia === 'VERMELHO') fillColor = '#f43f5e';
+        else if (est.criticidade_ia === 'AMARELO') fillColor = '#f59e0b';
+        else if (est.status_fundacao === 'NAO_INICIADO') fillColor = '#64748b';
+
+        const borderColor = est.area_alagavel ? '#0284c7' : '#0f172a';
+        const radius = est.criticidade_ia === 'VERMELHO' ? 9 : (est.classificacao_mecanica === 'PORTICO' ? 8 : 6);
+
+        const marker = L.circleMarker([est.latitude, est.longitude], {
+          radius: radius,
+          fillColor: fillColor,
+          color: borderColor,
+          weight: est.area_alagavel ? 3 : 1.5,
+          opacity: 1,
+          fillOpacity: 0.95
+        });
+
+        marker.on('click', () => {
+          torreSelecionada = est.codigo_projeto;
+          renderizarDetalheTorre(est.codigo_projeto);
+        });
+
+        const critLanc = est.arranjo_isolamento === 'ANCORAGEM' ? 'Ancoragem (Jumper)' : 'Suspensão (Grampeamento)';
+        marker.bindTooltip(`<b>Torre ${est.codigo_projeto} (Op. ${est.codigo_operacao})</b><br>Tipo: ${est.tipo_estrutura} • ${critLanc}<br>KM: ${est.km_progressivo.toFixed(3)} | Vão a Vante: ${est.vao_vante_m.toFixed(1)}m<br>Fund: ${est.status_fundacao} | Mont: ${est.status_montagem} | Lanç: ${est.status_lancamento}<br>${est.area_alagavel ? '💧 Área Alagável (ΔH>=60cm)' : ''}`, {
+          direction: 'top'
+        });
+
+        marker.addTo(markersLayer);
+      });
+
+      if (coordsLinha.length > 1 && !window._mapaJaCentralizado) {
+        const boundsPoly = L.polyline(coordsLinha);
+        mapInstance.fitBounds(boundsPoly.getBounds(), { padding: [30, 30] });
+        window._mapaJaCentralizado = true;
+      }
+      setTimeout(() => mapInstance.invalidateSize(), 200);
+    }
+
+    function renderizarDetalheTorre(codigoProj) {
+      const est = cockpitData.estruturas.find(e => e.codigo_projeto === codigoProj) || cockpitData.estruturas[1];
+      if (!est) return;
+      torreSelecionada = est.codigo_projeto;
+
+      document.getElementById('det-lote').textContent = est.lote;
+      document.getElementById('det-titulo').textContent = `Torre ${est.codigo_projeto} (Op. ${est.codigo_operacao})`;
+      document.getElementById('det-tipo').textContent = `${est.tipo_estrutura} (${est.classificacao_mecanica})`;
+      document.getElementById('det-altura-peso').textContent = `${est.altura_util_m}m • ${est.peso_aco_ton} ton`;
+      document.getElementById('det-fund').textContent = `${est.codigo_fundacao_pe || 'Bloco'} (Prof. mín: ${est.profundidade_minima_estaca_m}m)`;
+      document.getElementById('det-km').textContent = `KM ${est.km_progressivo.toFixed(3)} • Vão ${est.vao_vante_m}m`;
+
+      const badge = document.getElementById('det-badge-crit');
+      badge.textContent = est.criticidade_ia;
+      badge.className = `px-2.5 py-1 rounded text-xs font-bold border ${
+        est.criticidade_ia === 'VERMELHO' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' :
+        est.criticidade_ia === 'AMARELO' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' :
+        'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+      }`;
+
+      const restricoesDiv = document.getElementById('det-restricoes');
+      restricoesDiv.innerHTML = '';
+      if (est.nspt_1a8m && est.nspt_1a8m.length > 0) {
+        restricoesDiv.innerHTML += `<div class="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-300">🔬 <b>Sondagem 40-MDE-00071:</b> NA = <b>${est.nivel_agua_spt_m}m</b> • NSPT (1-8m): <code>[${est.nspt_1a8m.join(', ')}]</code> ${est.opcao_2_contingencia_bse ? `<br>🔄 <b>Opção 2:</b> <span class="text-emerald-300">${est.opcao_2_contingencia_bse}</span>` : `<br>⚠️ <span class="text-rose-300">Sem Opção 2 (BSE-M) pré-calculada</span>`}</div>`;
+      }
+      if (est.conflito_spt_maior_30) {
+        restricoesDiv.innerHTML += `<div class="px-2.5 py-1.5 rounded bg-rose-500/15 border border-rose-500/40 text-rose-300">🚨 <b>Conflito Geotécnico (NSPT máx = ${est.max_nspt_8m} > 30):</b> Viola limite do Proc. 06-PRO-00002 nos primeiros 8m!</div>`;
+      }
+      if (est.solo_muito_mole_nspt_zero) {
+        restricoesDiv.innerHTML += `<div class="px-2.5 py-1.5 rounded bg-purple-500/15 border border-purple-500/40 text-purple-300">⚠️ <b>Solo Muito Mole / Turfa (NSPT = 0):</b> Risco de baixo torque na profundidade mínima (${est.profundidade_minima_estaca_m}m).</div>`;
+      }
+      if (est.area_alagavel) {
+        restricoesDiv.innerHTML += `<div class="px-2.5 py-1.5 rounded bg-cyan-500/15 border border-cyan-500/40 text-cyan-300">💧 <b>Área Alagável (Nota 12.11.1):</b> Afloramento mínimo ΔH = 60 cm obrigatório.</div>`;
+      }
+      if (est.travessia_critica) {
+        restricoesDiv.innerHTML += `<div class="px-2.5 py-1.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300">⚡ <b>${est.travessia_critica}</b></div>`;
+      }
+
+      const styleStatus = (st) => st === 'CONCLUIDO' ? 'bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded' :
+                                   st === 'EM_ANDAMENTO' ? 'bg-amber-500/20 text-amber-300 font-semibold px-2 py-0.5 rounded' :
+                                   'bg-slate-800 text-slate-400 px-2 py-0.5 rounded';
+
+      const elF = document.getElementById('det-st-fund');
+      elF.textContent = est.status_fundacao; elF.className = styleStatus(est.status_fundacao);
+      const elM = document.getElementById('det-st-mont');
+      elM.textContent = est.status_montagem; elM.className = styleStatus(est.status_montagem);
+      const lblL = document.getElementById('det-lbl-lanc');
+      if (lblL) {
+        lblL.textContent = est.arranjo_isolamento === 'ANCORAGEM'
+          ? '3. Lançamento (Ancoragem → Jumper):'
+          : '3. Lançamento (Suspensão → Grampeamento):';
+      }
+      const elL = document.getElementById('det-st-lanc');
+      elL.textContent = est.status_lancamento; elL.className = styleStatus(est.status_lancamento);
+
+      document.getElementById('det-obs-ia').textContent = est.ultima_observacao || 'Sem ocorrências ou desvios registrados nesta estrutura.';
+    }
+
+    function renderizarLinhaBalanco() {
+      const container = document.getElementById('grid-linha-balanco');
+      container.innerHTML = '';
+      const corCelula = (st) => st === 'CONCLUIDO' ? 'bg-emerald-500 text-slate-950 font-bold' :
+                                st === 'EM_ANDAMENTO' ? 'bg-amber-400 text-slate-950 font-bold' :
+                                'bg-slate-800/90 text-slate-500';
+
+      cockpitData.estruturas.forEach(est => {
+        const col = document.createElement('div');
+        col.className = `flex flex-col gap-1 p-1 rounded cursor-pointer border ${est.criticidade_ia === 'VERMELHO' ? 'border-rose-500 bg-rose-950/30' : 'border-slate-800 bg-slate-900/60'} hover:border-cyan-400 transition`;
+        col.onclick = () => renderizarDetalheTorre(est.codigo_projeto);
+        col.innerHTML = `
+          <div class="text-center font-bold text-white truncate" title="${est.codigo_projeto}">${est.codigo_projeto.replace('Portico \n', '')}</div>
+          <div class="text-[9px] text-center text-slate-400">${est.tipo_estrutura.slice(0,4)}</div>
+          <div class="h-4 rounded flex items-center justify-center ${corCelula(est.status_fundacao)}" title="Fundação: ${est.status_fundacao}">F</div>
+          <div class="h-4 rounded flex items-center justify-center ${corCelula(est.status_montagem)}" title="Montagem: ${est.status_montagem}">M</div>
+          <div class="h-4 rounded flex items-center justify-center ${corCelula(est.status_lancamento)}" title="Lançamento: ${est.status_lancamento}">L</div>
+        `;
+        container.appendChild(col);
+      });
+    }
+
+    let ordemCronoAtual = 'uid_asc';
+
+    function alterarOrdenacaoCronograma(novoValor) {
+      ordemCronoAtual = novoValor;
+      const sel = document.getElementById('select-ordem-crono');
+      if (sel && sel.value !== novoValor) sel.value = novoValor;
+      renderizarTabelaPacotes();
+    }
+
+    function clicarCabecalhoOrdem(campo) {
+      if (campo === 'id_tarefa') {
+        alterarOrdenacaoCronograma(ordemCronoAtual === 'id_tarefa_asc' ? 'id_tarefa_desc' : 'id_tarefa_asc');
+      } else if (campo === 'uid') {
+        alterarOrdenacaoCronograma(ordemCronoAtual === 'uid_asc' ? 'uid_desc' : 'uid_asc');
+      } else if (campo === 'inicio') {
+        alterarOrdenacaoCronograma('inicio_asc');
+      } else if (campo === 'avanco') {
+        alterarOrdenacaoCronograma('avanco_desc');
+      }
+    }
+
+    function renderizarTabelaPacotes() {
+      const tbody = document.getElementById('tabela-pacotes-body');
+      tbody.innerHTML = '';
+
+      const escopo = (document.getElementById('filtro-escopo-crono') || {}).value || 'CAMPO';
+      const mapCampo = {};
+      (cockpitData.pacotes_cronograma || []).forEach(p => {
+        mapCampo[p.uid_ms_project] = p;
+      });
+
+      let lista = [];
+      if (escopo === 'TODAS' && cockpitData.todas_tarefas_cronograma) {
+        lista = cockpitData.todas_tarefas_cronograma.map(t => {
+          const pc = mapCampo[t.uid_ms_project];
+          return pc ? pc : {
+            uid_ms_project: t.uid_ms_project,
+            id_tarefa: t.id_tarefa,
+            nome_pacote: t.nome_pacote,
+            etapa_macro: t.etapa_macro,
+            eh_resumo_eap: Boolean(t.eh_resumo_eap || [1, 2, 8, 9, 20, 21, 33, 45, 57].includes(t.uid_ms_project)),
+            data_inicio_planejada: t.data_inicio_planejada,
+            data_fim_planejada: t.data_fim_planejada,
+            duracao_dias: t.duracao_planejada_dias,
+            qtd_torres_vinculadas: 0,
+            peso_unitario_por_torre_pct: 0,
+            produtividade_requerida: '-',
+            unidade_produtividade: '',
+            custo_planejado_pv_brl: 0,
+            avanco_fisico_pct: t.avanco_mpp_r0d_pct || 0,
+            valor_agregado_ev_brl: 0
+          };
+        });
+      } else {
+        lista = [...(cockpitData.pacotes_cronograma || [])];
+      }
+
+      // Atualizar ícones de ordenação
+      ['id_tarefa', 'uid', 'inicio', 'avanco'].forEach(k => {
+        const el = document.getElementById('sort-icon-' + k);
+        if (el) {
+          el.textContent = '↕';
+          el.className = 'text-slate-600';
+        }
+      });
+
+      lista.sort((a, b) => {
+        const idA = a.id_tarefa ?? a.uid_ms_project;
+        const idB = b.id_tarefa ?? b.uid_ms_project;
+        if (ordemCronoAtual === 'id_tarefa_asc') return idA - idB;
+        if (ordemCronoAtual === 'id_tarefa_desc') return idB - idA;
+        if (ordemCronoAtual === 'uid_asc') return a.uid_ms_project - b.uid_ms_project;
+        if (ordemCronoAtual === 'uid_desc') return b.uid_ms_project - a.uid_ms_project;
+        if (ordemCronoAtual === 'inicio_asc') return (a.data_inicio_planejada || '9999').localeCompare(b.data_inicio_planejada || '9999');
+        if (ordemCronoAtual === 'avanco_desc') return (b.avanco_fisico_pct || 0) - (a.avanco_fisico_pct || 0);
+        return idA - idB;
+      });
+
+      if (ordemCronoAtual.startsWith('id_tarefa')) {
+        const el = document.getElementById('sort-icon-id_tarefa');
+        if (el) { el.textContent = ordemCronoAtual.endsWith('asc') ? '▲' : '▼'; el.className = 'text-cyan-400'; }
+      } else if (ordemCronoAtual.startsWith('uid')) {
+        const el = document.getElementById('sort-icon-uid');
+        if (el) { el.textContent = ordemCronoAtual.endsWith('asc') ? '▲' : '▼'; el.className = 'text-cyan-400'; }
+      } else if (ordemCronoAtual === 'inicio_asc') {
+        const el = document.getElementById('sort-icon-inicio');
+        if (el) { el.textContent = '▲'; el.className = 'text-cyan-400'; }
+      } else if (ordemCronoAtual === 'avanco_desc') {
+        const el = document.getElementById('sort-icon-avanco');
+        if (el) { el.textContent = '▼'; el.className = 'text-cyan-400'; }
+      }
+
+      lista.forEach(p => {
+        const tr = document.createElement('tr');
+        const ehResumo = Boolean(p.eh_resumo_eap);
+        tr.className = ehResumo ? 'bg-slate-800/70 hover:bg-slate-800 border-l-4 border-cyan-400 transition' : 'hover:bg-slate-800/40 transition';
+        const temTorres = p.qtd_torres_vinculadas > 0;
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono font-bold ${ehResumo ? 'text-amber-300' : 'text-cyan-300'}">${p.uid_ms_project}</td>
+          <td class="py-2.5 px-3 font-mono text-slate-400">#${p.id_tarefa ?? '-'}</td>
+          <td class="py-2.5 px-3 ${ehResumo ? 'font-extrabold text-amber-200 uppercase tracking-wide' : 'font-semibold text-white'}">
+            ${ehResumo ? '📂 ' : ''}${p.nome_pacote}
+          </td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded ${ehResumo ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-cyan-300'} font-semibold">${p.etapa_macro}</span></td>
+          <td class="py-2.5 px-3 text-slate-300">${p.data_inicio_planejada || '-'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${p.data_fim_planejada || '-'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${p.duracao_dias}d</td>
+          <td class="py-2.5 px-3 text-slate-300">${temTorres ? (ehResumo ? `<span class="text-amber-300 font-semibold">${p.qtd_torres_vinculadas} torres (Consolidado EAP)</span>` : `${p.qtd_torres_vinculadas} estruturas (${p.peso_unitario_por_torre_pct}%/torre)`) : '<span class="text-slate-500">Tarefa Indireta / EAP</span>'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${temTorres ? `${p.produtividade_requerida} ${p.unidade_produtividade}` : '-'}</td>
+          <td class="py-2.5 px-3 ${ehResumo ? 'font-bold text-amber-200' : 'text-slate-300'}">${temTorres ? formatBRL(p.custo_planejado_pv_brl) : '-'}</td>
+          <td class="py-2.5 px-3">
+            ${temTorres ? `
+            <div class="flex items-center gap-2">
+              <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="${ehResumo ? 'bg-amber-400' : 'bg-emerald-400'} h-full" style="width: ${Math.min(100, p.avanco_fisico_pct)}%"></div>
+              </div>
+              <span class="font-bold text-white">${p.avanco_fisico_pct.toFixed(1)}%</span>
+            </div>` : '<span class="text-slate-500">-</span>'}
+          </td>
+          <td class="py-2.5 px-3 font-semibold ${ehResumo ? 'text-amber-300 font-bold' : 'text-emerald-400'}">${temTorres ? formatBRL(p.valor_agregado_ev_brl) : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderizarOrdens() {
+      // Alertas de integridade
+      const divAlertas = document.getElementById('lista-alertas-integridade');
+      divAlertas.innerHTML = '';
+      cockpitData.alertas_validacao_integridade.forEach(a => {
+        divAlertas.innerHTML += `
+          <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800">
+            <div class="font-bold text-amber-300 mb-1">${a.tipo} (${a.severidade})</div>
+            <p class="text-slate-300 leading-relaxed">${a.mensagem}</p>
+          </div>
+        `;
+      });
+
+      // Ordem de Batalha
+      const ob = cockpitData.ordem_batalha_vigente;
+      document.getElementById('ob-titulo').textContent = `${ob.codigo_ordem} — ${ob.titulo}`;
+      document.getElementById('ob-justificativa').textContent = ob.justificativa_limiar_ia;
+
+      const frentesDiv = document.getElementById('ob-frentes');
+      frentesDiv.innerHTML = '';
+      ob.frentes_trabalho.forEach(f => {
+        frentesDiv.innerHTML += `
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 text-xs">
+            <div class="text-cyan-400 font-bold uppercase">${f.sentido_avanco}</div>
+            <div class="text-sm font-bold text-white">${f.nome}</div>
+            <div class="text-slate-300"><b>Intervalo:</b> ${f.torre_inicial} até ${f.torre_final} (${f.total_torres} torres)</div>
+            <div class="text-slate-300"><b>Composição:</b> ${f.composicao_estruturas}</div>
+            <div class="text-amber-300 pt-1"><b>Foco Tático:</b> ${f.foco_critico}</div>
+          </div>
+        `;
+      });
+
+      const recDiv = document.getElementById('ob-recursos');
+      recDiv.innerHTML = '';
+      ob.dimensionamento_recursos.forEach(r => {
+        recDiv.innerHTML += `
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 text-xs">
+            <div class="font-bold text-emerald-400">${r.disciplina}</div>
+            <div class="text-slate-300"><b>Meta:</b> ${r.meta_produtividade}</div>
+            <div class="text-slate-300"><b>Equipes:</b> ${r.equipes_alocadas}</div>
+            <div class="text-slate-400"><b>Equipamentos:</b> ${r.equipamentos_criticos}</div>
+          </div>
+        `;
+      });
+
+      // Ordens de Produção
+      const opDiv = document.getElementById('lista-ordens-producao');
+      opDiv.innerHTML = '';
+      if (cockpitData.ordens_producao.length === 0) {
+        opDiv.innerHTML = `<div class="p-4 rounded-lg bg-slate-900 text-xs text-slate-400">Nenhuma Ordem de Produção emitida. Clique em "Rodar Teste de Fogo" no topo ou envie um relato de risco pelo App Mobile.</div>`;
+        return;
+      }
+      cockpitData.ordens_producao.forEach(op => {
+        opDiv.innerHTML += `
+          <div class="p-4 rounded-xl bg-rose-950/20 border border-rose-500/40 flex flex-col md:flex-row justify-between gap-4 text-xs">
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-rose-500 text-slate-950 font-bold">${op.numero_ordem}</span>
+                <span class="font-bold text-white text-sm">${op.frente_afetada}</span>
+                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Risco Projetado: ${op.risco_detectado_pct}% (Limiar: ${op.limiar_baseline_pct}%)</span>
+                <span class="px-2 py-0.5 rounded bg-slate-800 text-emerald-300">${op.status}</span>
+              </div>
+              <div class="text-slate-300"><b>Gatilho IA / Diagnóstico de Campo:</b> ${op.motivo_desvio}</div>
+              <div class="text-cyan-300 bg-slate-900/90 p-2.5 rounded border border-slate-800"><b>Plano de Ação Corretiva (Ordem de Produção):</b> ${op.acao_corretiva_recomendada}</div>
+            </div>
+            <div class="flex flex-col justify-between items-end min-w-[190px] border-t md:border-t-0 md:border-l border-slate-800 pt-2 md:pt-0 md:pl-4">
+              <div class="text-right">
+                <span class="text-slate-400 block">Multa Contratual Mitigada</span>
+                <strong class="text-sm text-emerald-400">${formatBRL(op.multa_contratual_evitada_brl)}</strong>
+              </div>
+              ${op.status === 'EMITIDA' ? `<button onclick="aprovarOP('${op.id}')" class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">✅ Aprovar Ordem</button>` : `<span class="text-emerald-400 font-bold">✓ Aprovada pelo Gestor</span>`}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function popularSelectMobile() {
+      const sel = document.getElementById('mob-select-torre');
+      const valAtual = sel.value || torreSelecionada;
+      sel.innerHTML = '';
+      cockpitData.estruturas.forEach(est => {
+        const opt = document.createElement('option');
+        opt.value = est.codigo_projeto;
+        opt.textContent = `Torre ${est.codigo_projeto} (Op. ${est.codigo_operacao}) — ${est.tipo_estrutura} ${est.area_alagavel ? '[💧Alagável]' : ''}`;
+        sel.appendChild(opt);
+      });
+      sel.value = valAtual;
+      aoMudarTorreMobile();
+    }
+
+    function aoMudarTorreMobile() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = cockpitData.estruturas.find(e => e.codigo_projeto === cod);
+      if (!est) return;
+      document.getElementById('mob-lat').value = est.latitude;
+      document.getElementById('mob-lon').value = est.longitude;
+      document.getElementById('mob-card-engenharia').innerHTML = `
+        <div class="flex justify-between"><span><b>Estrutura:</b> ${est.tipo_estrutura} (${est.classificacao_mecanica})</span><span><b>Peso:</b> ${est.peso_aco_ton}t</span></div>
+        <div><b>Opção 1 (LLI Rev.5):</b> ${est.tipo_fundacao} | Prof. Mín: ${est.profundidade_minima_estaca_m}m</div>
+        ${est.nspt_1a8m && est.nspt_1a8m.length ? `<div class="text-slate-300"><b>Sondagem (40-MDE-00071):</b> NA = ${est.nivel_agua_spt_m}m | NSPT(1-8m): [${est.nspt_1a8m.join(', ')}]</div>` : ''}
+        ${est.opcao_2_contingencia_bse ? `<div class="text-emerald-300"><b>Opção 2 Contingência:</b> ${est.opcao_2_contingencia_bse}</div>` : ''}
+        ${est.conflito_spt_maior_30 ? `<div class="text-rose-400 font-bold">🚨 Alerta MDE-00071: NSPT máx = ${est.max_nspt_8m} (> 30) nos primeiros 8m!</div>` : ''}
+        ${est.area_alagavel ? `<div class="text-cyan-300 font-semibold">💧 Área Alagável (Nota 12.11.1): Checar Afloramento ΔH >= 60cm</div>` : ''}
+        ${est.travessia_critica ? `<div class="text-amber-300 font-semibold">⚡ ${est.travessia_critica}</div>` : ''}
+      `;
+      renderChecklistDinamico();
+    }
+
+    function posicionarGpsNaTorre() {
+      aoMudarTorreMobile();
+    }
+
+    function renderChecklistDinamico() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = cockpitData.estruturas.find(e => e.codigo_projeto === cod) || {};
+      const etapa = document.getElementById('mob-etapa').value;
+      const div = document.getElementById('mob-checklist-container');
+
+      if (etapa === 'FUNDACAO') {
+        div.innerHTML = `
+          <div class="font-semibold text-cyan-300">Protocolo de Instalação Estaca Helicoidal (06-PRO-00002 Anexo I)</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-[10px] text-slate-400">Torque Médio Final (lb.ft)</span>
+              <input type="number" id="chk-torque" value="5800" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white" />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400">Profundidade Atingida (m)</span>
+              <input type="number" step="0.1" id="chk-prof" value="${est.profundidade_minima_estaca_m || 6.6}" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white" />
+            </div>
+          </div>
+          <label class="flex items-center gap-2 mt-1">
+            <input type="checkbox" checked class="rounded bg-slate-950" />
+            <span>Inclinação conferida a cada metro (Desvio <= ±3°) e Afloramento >= ${est.area_alagavel ? '60cm (Alagável)' : '50cm'}</span>
+          </label>
+        `;
+      } else if (etapa === 'MONTAGEM') {
+        div.innerHTML = `
+          <div class="font-semibold text-cyan-300">Checklist de Montagem (${est.tipo_estrutura} — ${est.classificacao_mecanica})</div>
+          <label class="flex items-center gap-2"><input type="checkbox" checked /> <span>Torque de parafusos ASTM A325/A572 conferido</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" checked /> <span>${est.classificacao_mecanica === 'ESTAIADA' ? 'Tensão dos 4 estais e prumo do mastro central validados' : 'Prumo e revisão final de montantes autoportantes concluídos'}</span></label>
+        `;
+      } else {
+        const ehAncoragem = est.arranjo_isolamento === 'ANCORAGEM';
+        div.innerHTML = `
+          <div class="font-semibold text-cyan-300">
+            Checklist Lançamento — Torre de ${ehAncoragem ? 'ANCORAGEM (Finalização: Fechamento de Jumper — ID 89)' : 'SUSPENSÃO (Finalização: Grampeamento — ID 86)'}
+          </div>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked />
+            <span>Cadeias ${est.cadeia_isoladores || (ehAncoragem ? 'AD4C/AS4C' : 'SSI4C')} e Vão a Vante (${est.vao_vante_m}m) nivelados</span>
+          </label>
+          <label class="flex items-center gap-2 font-semibold ${ehAncoragem ? 'text-amber-300' : 'text-emerald-300'}">
+            <input type="checkbox" checked />
+            <span>${ehAncoragem ? '⚡ Marco Finalizador: Fechamento dos Jumpers (Ré ↔ Vante) e espaçadores concluídos' : '🔩 Marco Finalizador: Grampeamento dos 4 subcondutores CAL 993 kcmil + OPGW e espaçadores concluídos'}</span>
+          </label>
+        `;
+      }
+    }
+
+    function preencherExemploVoz() {
+      const cod = document.getElementById('mob-select-torre').value;
+      document.getElementById('mob-etapa').value = 'FUNDACAO';
+      document.getElementById('mob-status').value = 'EM_ANDAMENTO';
+      renderChecklistDinamico();
+      document.getElementById('mob-obs').value = `Ditado Fiscal na Torre ${cod}: Encontrada camada de rocha / matacão impenetrável com SPT > 30 a 4,1m de profundidade durante rotação da seção guia. Torque subiu no limite da retroescavadeira.`;
+    }
+
+    function toggleModoOffline() {
+      const off = document.getElementById('chk-modo-offline').checked;
+      const lbl = document.getElementById('lbl-status-rede');
+      if (off) {
+        lbl.textContent = 'OFFLINE (SQLite Local)';
+        lbl.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold text-[11px]';
+      } else {
+        lbl.textContent = 'ONLINE (4G)';
+        lbl.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold text-[11px]';
+      }
+    }
+
+    async function salvarApontamentoMobile() {
+      const payload = {
+        sqlite_local_id: 'SQLITE-' + Date.now(),
+        codigo_projeto: document.getElementById('mob-select-torre').value,
+        fiscal_nome: 'Fiscal de Campo (App Mobile)',
+        etapa: document.getElementById('mob-etapa').value,
+        status_reportado: document.getElementById('mob-status').value,
+        latitude_coleta: parseFloat(document.getElementById('mob-lat').value),
+        longitude_coleta: parseFloat(document.getElementById('mob-lon').value),
+        observacao_texto: document.getElementById('mob-obs').value,
+        checklist: {
+          torque_obtido_lbft: document.getElementById('chk-torque') ? parseFloat(document.getElementById('chk-torque').value) : null,
+          profundidade_m: document.getElementById('chk-prof') ? parseFloat(document.getElementById('chk-prof').value) : null
+        }
+      };
+
+      const fb = document.getElementById('mob-feedback');
+      fb.classList.remove('hidden');
+
+      if (document.getElementById('chk-modo-offline').checked) {
+        filaOfflineSQLite.push(payload);
+        localStorage.setItem("lt_fila_sqlite_v1", JSON.stringify(filaOfflineSQLite));
+        atualizarUIierFilaOffline();
+        fb.className = 'p-2.5 rounded-lg text-xs bg-amber-500/20 border border-amber-500/40 text-amber-200';
+        fb.textContent = `📦 Sem internet: Vistoria da Torre ${payload.codigo_projeto} criptografada e salva no banco SQLite local!`;
+        return;
+      }
+
+      const res = await fetch('/api/campo/sincronizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        fb.className = 'p-2.5 rounded-lg text-xs bg-rose-500/20 border border-rose-500/50 text-rose-200';
+        fb.textContent = `❌ ${data.detail}`;
+        return;
+      }
+
+      fb.className = 'p-2.5 rounded-lg text-xs bg-emerald-500/20 border border-emerald-500/40 text-emerald-200';
+      fb.innerHTML = `✅ Sincronizado (Distância GPS: ${data.distancia_torre_metros}m) • Risco IA: <b>${data.analise_ia.nivel_risco_ia}</b> ${data.ordem_producao_gerada ? `<br>🚨 Emitida Ordem de Produção <b>${data.ordem_producao_gerada.numero_ordem}</b>!` : ''}`;
+      document.getElementById('mob-obs').value = '';
+      await carregarCockpit();
+    }
+
+    function atualizarUIierFilaOffline() {
+      document.getElementById('count-fila-offline').textContent = filaOfflineSQLite.length;
+      const div = document.getElementById('lista-fila-offline');
+      if (filaOfflineSQLite.length === 0) {
+        div.innerHTML = 'Nenhum registro pendente na fila offline do aparelho.';
+        return;
+      }
+      div.innerHTML = filaOfflineSQLite.map(item => `
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between items-center mb-1.5">
+          <span><b>Torre ${item.codigo_projeto}</b> • ${item.etapa} → ${item.status_reportado}</span>
+          <span class="text-amber-400 font-mono">${item.sqlite_local_id}</span>
+        </div>
+      `).join('');
+    }
+
+    async function sincronizarFilaOffline() {
+      if (filaOfflineSQLite.length === 0) return;
+      document.getElementById('chk-modo-offline').checked = false;
+      toggleModoOffline();
+      for (const item of filaOfflineSQLite) {
+        await fetch('/api/campo/sincronizar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item)
+        });
+      }
+      filaOfflineSQLite = [];
+      localStorage.setItem("lt_fila_sqlite_v1", "[]");
+      atualizarUIierFilaOffline();
+      await carregarCockpit();
+    }
+
+    function renderizarApontamentosNuvem() {
+      const div = document.getElementById('lista-apontamentos-nuvem');
+      if (!cockpitData.apontamentos_recentes || cockpitData.apontamentos_recentes.length === 0) {
+        div.innerHTML = `<div class="text-xs text-slate-400">Nenhum apontamento sincronizado ainda.</div>`;
+        return;
+      }
+      div.innerHTML = cockpitData.apontamentos_recentes.map(a => `
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white">Torre ${a.codigo_projeto} • ${a.etapa} (${a.status_reportado})</span>
+            <span class="px-2 py-0.5 rounded font-bold ${a.nivel_risco_ia === 'CRITICO' || a.nivel_risco_ia === 'ALTO' ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}">
+              Risco IA: ${a.nivel_risco_ia} (${a.categoria_problema_ia})
+            </span>
+          </div>
+          <div class="text-slate-400"><b>Relato Fiscal:</b> "${a.observacao_texto || 'Sem observações'}"</div>
+          <div class="text-cyan-300"><b>Interpretação IA:</b> ${a.resumo_analise_ia}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderizarRevisoesBaseline() {
+      const div = document.getElementById('lista-revisoes-baseline');
+      div.innerHTML = cockpitData.historico_baselines.map(r => `
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white">Versão V${r.versao} — ${r.titulo_revisao}</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${r.status === 'ATIVA' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${r.status}</span>
+          </div>
+          <p class="text-slate-400">${r.motivo_revisao}</p>
+          <div class="text-cyan-300 pt-1">Limiar de Risco: <b>${r.limiar_risco_toleravel_pct}%</b> • Ordem de Batalha Vinculada: <b>${r.nova_ordem_batalha_codigo}</b></div>
+        </div>
+      `).join('');
+    }
+
+    async function salvarRevisaoBaseline() {
+      const payload = {
+        titulo_revisao: document.getElementById('rev-titulo').value,
+        motivo_revisao: document.getElementById('rev-motivo').value,
+        novo_limiar_risco_pct: parseFloat(document.getElementById('rev-limiar').value),
+        gerar_nova_ordem_batalha: true
+      };
+      await fetch('/api/baseline/revisar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await carregarCockpit();
+    }
+
+    async function aprovarOP(id) {
+      await fetch(`/api/ordens-producao/${id}/aprovar`, { method: 'POST' });
+      await carregarCockpit();
+    }
+
+    async function simularHistorico(cenario) {
+      await fetch('/api/simulacao/historico-35-torres', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cenario })
+      });
+      await carregarCockpit();
+    }
+
+    function abrirTorreNoAppMobile() {
+      document.getElementById('mob-select-torre').value = torreSelecionada;
+      aoMudarTorreMobile();
+      switchTab('tab-mobile');
+    }
+
+    window.addEventListener('DOMContentLoaded', carregarCockpit);
+  </script>
+</body>
+</html>
