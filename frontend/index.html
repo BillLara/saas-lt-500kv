@@ -556,10 +556,18 @@
           <div>
             <span class="text-xs font-bold text-emerald-400 uppercase">Plano de Ataque Estratégico (Gerado pós-validação da Baseline)</span>
             <h2 class="text-lg font-bold text-white" id="ob-titulo">OB-001 — Ordem de Batalha Inicial</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5 font-mono">
+              Fontes: Cronograma 03-CRO-0001_R0D.mpp (391d) + Lista de Construção 40-LLI-00001-5.xlsx (84 Torres) + Sondagem 40-MDE-00071-0.pdf
+            </p>
           </div>
-          <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-            Limiar de Risco Tolerável: 4,50%
-          </span>
+          <div class="flex items-center gap-2">
+            <button onclick="abrirModalExplicacao('ORDENS_PRODUCAO')" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-bold transition">
+              ⓘ Fonte do Limiar &amp; Cálculo de Risco Mitigado
+            </button>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              Limiar de Risco Tolerável: 4,50%
+            </span>
+          </div>
         </div>
         <p class="text-xs text-slate-300 bg-slate-900/90 p-3 rounded border border-slate-800" id="ob-justificativa"></p>
 
@@ -571,12 +579,59 @@
 
       <!-- ORDENS DE PRODUÇÃO TÁTICAS GERADAS PELA IA -->
       <div class="glass rounded-xl p-5 space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
-            <span class="text-xs font-bold text-rose-400 uppercase">Gatilho Dinâmico por Desvio > Limiar de Risco (4,50%)</span>
-            <h2 class="text-lg font-bold text-white">Ordens de Produção Táticas Emitidas pelo Motor de IA</h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold text-rose-400 uppercase">Gatilho Dinâmico por Desvio &gt; Limiar de Risco (4,50%)</span>
+              <button onclick="abrirModalExplicacao('ORDENS_PRODUCAO')" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-bold transition flex items-center gap-1">
+                ⓘ Memória de Cálculo: Valor do Risco Mitigado &amp; Fontes
+              </button>
+            </div>
+            <h2 class="text-lg font-bold text-white mt-0.5">Ordens de Produção Táticas Emitidas pelo Motor de IA</h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Cada Ordem de Produção dimensiona via micro-simulação Monte Carlo (1.000 iterações Beta-PERT) o impacto no caminho crítico (P80) e a multa contratual evitada (<code class="text-cyan-300">Contrato EPC Cláusula 19.2.3 — R$ 158.241,06/dia</code>).
+            </p>
           </div>
+          <!-- RESUMO CONSOLIDADO DE RISCO MITIGADO -->
+          <div id="resumo-ops-header" class="flex flex-wrap items-center gap-3"></div>
         </div>
+
+        <!-- GUIA RÁPIDO EXPANSÍVEL PARA O ANALISTA / OPERADOR -->
+        <details class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs">
+          <summary class="cursor-pointer font-bold text-cyan-300 flex items-center justify-between select-none">
+            <span>📘 Guia Rápido do Analista: Como são calculados o "Risco Projetado (%)" e a "Multa Contratual Mitigada (R$)" de cada Ordem de Produção (Clique para abrir)</span>
+            <span class="text-[11px] text-slate-400 font-normal">Rastreabilidade Contratual &amp; Estocástica</span>
+          </summary>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-300">
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">1. Micro-Simulação Monte Carlo (1.000 Iterações)</div>
+              <p class="text-slate-400 leading-relaxed">
+                Quando o fiscal reporta um bloqueio Crítico/Alto em campo, o motor <code class="text-cyan-300">simular_impacto_ordem_monte_carlo</code> sorteia <b>1.000 cenários Beta-PERT (O, M, P)</b> específicos para aquela tipologia de falha e torre, extraindo os dias de atraso nos percentis <b>P50</b>, <b>P80 (Referência Tática)</b> e <b>P90</b> caso nenhuma ação corretiva seja tomada.
+              </p>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">2. Fórmula do Risco Projetado na Frente (%)</div>
+              <div class="font-mono text-[10px] text-rose-300 bg-slate-900 p-1.5 rounded border border-slate-800">
+                Risco (%) = Limiar_BL (4,50%) + [(Dias_P80 ÷ 391d) × 100 × 1,65]
+              </div>
+              <p class="text-slate-400 leading-relaxed">
+                • <b>391 dias:</b> Prazo construtivo total no cronograma <code class="text-cyan-300">03-CRO-0001_R0D.mpp</code>.<br>
+                • <b>Fator 1,65:</b> Coeficiente de encadeamento em série (Fundação → Montagem → Lançamento). Como o Risco Projetado supera o Limiar de <b>4,50%</b>, a Ordem de Produção é emitida automaticamente.
+              </p>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">3. Fórmula do Valor do Risco Mitigado (Multa Evitada)</div>
+              <div class="font-mono text-[10px] text-emerald-300 bg-slate-900 p-1.5 rounded border border-slate-800">
+                Risco Mitigado (R$) = Dias_P80 × R$ 158.241,06 / dia
+              </div>
+              <p class="text-slate-400 leading-relaxed">
+                • <b>Fonte Contratual:</b> <code class="text-cyan-300">Contrato_EPC_LT_500_kV_-_GNA_x_Alubar.pdf</code> (Cláusula 19.2.3 — Penalidade por Atraso no Marco COD).<br>
+                • <b>Taxa Diária:</b> <code class="text-emerald-300">0,10% ao dia</code> sobre o CAPEX contratual de <b>R$ 158.241.062,00</b> (= <b>R$ 158.241,06/dia</b>, até o teto de 10% = R$ 15,82 MM). Ao executar a manobra tática da OP (ex.: desviar equipamento para torre adjacente ou migrar para fundação BSE-M), evita-se a paralisação do caminho crítico e mitiga-se esse valor de exposição.
+              </p>
+            </div>
+          </div>
+        </details>
+
         <div id="lista-ordens-producao" class="space-y-3"></div>
       </div>
     </div>
@@ -1460,30 +1515,80 @@
 
       // Ordens de Produção
       const opDiv = document.getElementById('lista-ordens-producao');
+      const resumoHeader = document.getElementById('resumo-ops-header');
       opDiv.innerHTML = '';
       if (cockpitData.ordens_producao.length === 0) {
-        opDiv.innerHTML = `<div class="p-4 rounded-lg bg-slate-900 text-xs text-slate-400">Nenhuma Ordem de Produção emitida. Clique em "Rodar Teste de Fogo" no topo ou envie um relato de risco pelo App Mobile.</div>`;
+        if (resumoHeader) resumoHeader.innerHTML = '';
+        opDiv.innerHTML = `<div class="p-4 rounded-lg bg-slate-900 text-xs text-slate-400">Nenhuma Ordem de Produção emitida. Clique em "⚡ Simular Avanço + Desvios Reais" no topo ou envie um relato de risco pelo App Mobile.</div>`;
         return;
       }
+
+      const TAXA_MULTA_DIA = 158241.06;
+      const totalMitigadoBrl = cockpitData.ordens_producao.reduce((acc, o) => acc + (o.multa_contratual_evitada_brl || 0), 0);
+      const totalDiasEvitados = cockpitData.ordens_producao.reduce((acc, o) => acc + ((o.multa_contratual_evitada_brl || 0) / TAXA_MULTA_DIA), 0);
+
+      if (resumoHeader) {
+        resumoHeader.innerHTML = `
+          <div class="bg-slate-900/90 border border-emerald-500/40 rounded-xl px-4 py-2 text-right">
+            <span class="text-[10px] text-slate-400 block uppercase font-semibold">Valor Total do Risco Mitigado (${cockpitData.ordens_producao.length} OPs)</span>
+            <strong class="text-base font-extrabold text-emerald-400">${formatBRL(totalMitigadoBrl)}</strong>
+            <span class="text-[10px] text-slate-400 font-mono block">${totalDiasEvitados.toFixed(1)}d P80 acumulados × R$ 158.241,06/dia (Cláus. 19.2.3)</span>
+          </div>
+        `;
+      }
+
       cockpitData.ordens_producao.forEach(op => {
+        const diasExatosP80 = (op.multa_contratual_evitada_brl || 0) / TAXA_MULTA_DIA;
+        const diasArred = op.impacto_estimado_prazo_dias || Math.round(diasExatosP80);
+        const txtUp = ((op.motivo_desvio || '') + ' ' + (op.acao_corretiva_recomendada || '')).toUpperCase();
+        let fonteNormativa = 'Contrato EPC Cláusula 19.2.3 + Cronograma 03-CRO-0001_R0D.mpp';
+        let distPertInfo = 'Beta-PERT (4,0d / 6,5d / 10,5d — Suprimentos & Ritmo)';
+        if (txtUp.includes('SPT') || txtUp.includes('MDE-00071') || txtUp.includes('IMPENETR')) {
+          fonteNormativa = 'Sondagem 40-MDE-00071-0.pdf (SPT > 30) + Proc. 06-PRO-00002-2.pdf (Item 4) + Contrato EPC Cláus. 19.2.3';
+          distPertInfo = txtUp.includes('SEM OPÇÃO 2') ? 'Beta-PERT (5,5d / 8,5d / 13,0d — Sem BSE-M)' : 'Beta-PERT (2,5d / 4,5d / 7,5d — Migração BSE-M)';
+        } else if (txtUp.includes('ALAG') || txtUp.includes('12.11.1')) {
+          fonteNormativa = 'Lista de Construção 40-LLI-00001-5.xlsx (Nota 12.11.1 — ΔH >= 60cm) + Contrato EPC Cláus. 19.2.3';
+          distPertInfo = 'Beta-PERT (3,5d / 6,0d / 10,0d — Baixada Alagável)';
+        } else if (txtUp.includes('TRAVESSIA') || txtUp.includes('FURNAS') || txtUp.includes('345KV') || txtUp.includes('12.3')) {
+          fonteNormativa = 'Lista de Construção 40-LLI-00001-5.xlsx (Notas 12.2 / 12.3 / 12.4 — Travessias) + Contrato EPC Cláus. 19.2.3';
+          distPertInfo = 'Beta-PERT (5,0d / 8,5d / 14,0d — Janela Desligamento)';
+        }
+
         opDiv.innerHTML += `
-          <div class="p-4 rounded-xl bg-rose-950/20 border border-rose-500/40 flex flex-col md:flex-row justify-between gap-4 text-xs">
-            <div class="space-y-1.5">
-              <div class="flex items-center gap-2">
+          <div class="p-4 rounded-xl bg-rose-950/20 border border-rose-500/40 flex flex-col lg:flex-row justify-between gap-4 text-xs">
+            <div class="space-y-2 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
                 <span class="px-2 py-0.5 rounded bg-rose-500 text-slate-950 font-bold">${op.numero_ordem}</span>
                 <span class="font-bold text-white text-sm">${op.frente_afetada}</span>
-                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Risco Projetado: ${op.risco_detectado_pct}% (Limiar: ${op.limiar_baseline_pct}%)</span>
-                <span class="px-2 py-0.5 rounded bg-slate-800 text-emerald-300">${op.status}</span>
+                <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
+                  Risco Projetado: ${op.risco_detectado_pct}% &gt; Limiar: ${op.limiar_baseline_pct}%
+                </span>
+                <span class="px-2 py-0.5 rounded bg-slate-800 text-emerald-300 font-semibold">${op.status}</span>
+                <button onclick="abrirModalDetalheOP('${op.id}')" class="px-2 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/50 text-cyan-300 text-[11px] font-bold transition">
+                  ⓘ Ver Memória de Cálculo desta OP
+                </button>
               </div>
               <div class="text-slate-300"><b>Gatilho IA / Diagnóstico de Campo:</b> ${op.motivo_desvio}</div>
               <div class="text-cyan-300 bg-slate-900/90 p-2.5 rounded border border-slate-800"><b>Plano de Ação Corretiva (Ordem de Produção):</b> ${op.acao_corretiva_recomendada}</div>
-            </div>
-            <div class="flex flex-col justify-between items-end min-w-[190px] border-t md:border-t-0 md:border-l border-slate-800 pt-2 md:pt-0 md:pl-4">
-              <div class="text-right">
-                <span class="text-slate-400 block">Multa Contratual Mitigada</span>
-                <strong class="text-sm text-emerald-400">${formatBRL(op.multa_contratual_evitada_brl)}</strong>
+              <div class="flex flex-wrap items-center gap-4 text-[11px] text-slate-400 font-mono pt-0.5">
+                <span>📚 <b>Fonte Técnica:</b> ${fonteNormativa}</span>
+                <span>🎲 <b>Sorteio IA (1.000 iter.):</b> ${distPertInfo}</span>
               </div>
-              ${op.status === 'EMITIDA' ? `<button onclick="aprovarOP('${op.id}')" class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">✅ Aprovar Ordem</button>` : `<span class="text-emerald-400 font-bold">✓ Aprovada pelo Gestor</span>`}
+            </div>
+            <div class="flex flex-col justify-between items-end min-w-[260px] bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <div class="text-right w-full space-y-1">
+                <span class="text-slate-400 block text-[11px] uppercase font-semibold">Valor do Risco Mitigado (Multa Evitada)</span>
+                <strong class="text-lg font-extrabold text-emerald-400 block">${formatBRL(op.multa_contratual_evitada_brl)}</strong>
+                <div class="text-[10px] font-mono text-slate-300 bg-slate-950/90 p-2 rounded border border-slate-800/90 text-left space-y-0.5 mt-1">
+                  <div class="text-cyan-300 font-bold">Memória do Cálculo (Cláusula 19.2.3):</div>
+                  <div>• Atraso P80 Evitado: <b>${diasExatosP80.toFixed(2)} dias</b> (~${diasArred}d)</div>
+                  <div>• Multa Diária (0,10% CAPEX): <b>R$ 158.241,06/d</b></div>
+                  <div class="text-emerald-300 font-bold pt-0.5">• ${diasExatosP80.toFixed(2)}d × R$ 158.241,06 = ${formatBRL(op.multa_contratual_evitada_brl)}</div>
+                </div>
+              </div>
+              <div class="mt-3 w-full flex justify-end">
+                ${op.status === 'EMITIDA' ? `<button onclick="aprovarOP('${op.id}')" class="w-full py-1.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition">✅ Aprovar Ordem de Produção</button>` : `<span class="text-emerald-400 font-bold">✓ Aprovada pelo Gestor</span>`}
+              </div>
             </div>
           </div>
         `;
@@ -1756,6 +1861,90 @@
       if (m) m.classList.add('hidden');
     }
 
+    function abrirModalDetalheOP(opId) {
+      if (!cockpitData || !cockpitData.ordens_producao) return;
+      const op = cockpitData.ordens_producao.find(o => o.id === opId);
+      if (!op) {
+        abrirModalExplicacao('ORDENS_PRODUCAO');
+        return;
+      }
+      const modal = document.getElementById('modal-explicacao-cockpit');
+      const tituloEl = document.getElementById('modal-exp-titulo');
+      const subEl = document.getElementById('modal-exp-subtitulo');
+      const bodyEl = document.getElementById('modal-exp-body');
+
+      const TAXA_MULTA_DIA = 158241.06;
+      const diasExatos = (op.multa_contratual_evitada_brl || 0) / TAXA_MULTA_DIA;
+      let codTorre = '-';
+      try { codTorre = JSON.parse(op.torres_afetadas_json || '[]')[0] || '-'; } catch (_) { codTorre = op.torres_afetadas_json || '-'; }
+      const torreObj = (cockpitData.estruturas || []).find(e => e.codigo_projeto === codTorre) || {};
+      const txtUp = ((op.motivo_desvio || '') + ' ' + (op.acao_corretiva_recomendada || '')).toUpperCase();
+
+      let docFonte = '03-CRO-14022-619-P-RAI-0001_R0D.mpp + Contrato EPC Cláusula 19.2.3';
+      let paramPert = 'Otimista = 4,0d | Mais Provável = 6,5d | Pessimista = 10,5d';
+      if (txtUp.includes('SPT') || txtUp.includes('MDE-00071') || txtUp.includes('IMPENETR')) {
+        docFonte = 'Memorial de Sondagem 40-MDE-14022-619-AB0-P-RAI-00071-0.pdf + Procedimento 06-PRO-14022-619-ABO-P-RAI-00002-2.pdf (Item 4)';
+        paramPert = torreObj.opcao_2_contingencia_bse
+          ? `Otimista = 2,5d | Mais Provável = 4,5d | Pessimista = 7,5d (Com Opção 2: ${torreObj.opcao_2_contingencia_bse})`
+          : 'Otimista = 5,5d | Mais Provável = 8,5d | Pessimista = 13,0d (Torre sem Opção 2 BSE-M pré-dimensionada)';
+      } else if (txtUp.includes('ALAG') || txtUp.includes('12.11.1')) {
+        docFonte = 'Lista de Construção 40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx (Nota 12.11.1 — Áreas Alagáveis ΔH >= 60cm)';
+        paramPert = 'Otimista = 3,5d | Mais Provável = 6,0d | Pessimista = 10,0d';
+      } else if (txtUp.includes('TRAVESSIA') || txtUp.includes('FURNAS') || txtUp.includes('345KV')) {
+        docFonte = 'Lista de Construção 40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx (Notas 12.2, 12.3 e 12.4 — Travessias Críticas)';
+        paramPert = 'Otimista = 5,0d | Mais Provável = 8,5d | Pessimista = 14,0d';
+      }
+
+      tituloEl.textContent = `Memória de Cálculo Auditável — Ordem de Produção ${op.numero_ordem} (Torre ${codTorre})`;
+      subEl.textContent = `${op.frente_afetada} • Estrutura ${torreObj.tipo_estrutura || '-'} (${torreObj.tipo_fundacao || '-'})`;
+
+      bodyEl.innerHTML = `
+        <div class="space-y-4 text-xs">
+          <div class="bg-slate-900/90 border border-rose-500/40 rounded-xl p-4 space-y-2">
+            <div class="font-bold text-rose-300 uppercase text-[11px]">1. Diagnóstico de Campo &amp; Documento-Fonte de Engenharia</div>
+            <p class="text-slate-200 leading-relaxed">${op.motivo_desvio}</p>
+            <div class="text-cyan-300 font-mono text-[11px] pt-1">
+              📚 <b>Base Normativa / Projeto:</b> ${docFonte}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-amber-300 uppercase text-[11px]">2. Cálculo do Risco Projetado na Frente (${op.risco_detectado_pct}%)</div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                <div class="text-slate-400">• 1.000 Sorteios Beta-PERT: <span class="text-white">${paramPert}</span></div>
+                <div class="text-slate-400">• Impacto P80 (80% confiança): <b class="text-cyan-300">${diasExatos.toFixed(2)} dias</b> (~${op.impacto_estimado_prazo_dias}d)</div>
+                <div class="text-slate-400">• Prazo Construtivo Baseline: <b class="text-white">391 dias</b> (<code class="text-cyan-300">03-CRO.mpp</code>)</div>
+                <div class="text-slate-400">• Fator de Encadeamento Crítico: <b class="text-white">1,65</b></div>
+                <div class="text-amber-300 font-bold pt-1">
+                  Risco_P80 = ${op.limiar_baseline_pct.toFixed(2)}% + [(${diasExatos.toFixed(2)} ÷ 391) × 100 × 1,65] = ${op.risco_detectado_pct}%
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-emerald-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-emerald-300 uppercase text-[11px]">3. Cálculo do Valor do Risco Mitigado (${formatBRL(op.multa_contratual_evitada_brl)})</div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                <div class="text-slate-400">• Fonte: <code class="text-cyan-300">Contrato_EPC_LT_500_kV_-_GNA_x_Alubar.pdf</code> (Cláusula 19.2.3)</div>
+                <div class="text-slate-400">• CAPEX Contratual: <b class="text-white">R$ 158.241.062,00</b></div>
+                <div class="text-slate-400">• Penalidade Diária (0,10%/dia): <b class="text-white">R$ 158.241,06 / dia</b></div>
+                <div class="text-slate-400">• Dias de Atraso Evitados (P80): <b class="text-cyan-300">${diasExatos.toFixed(2)} dias</b></div>
+                <div class="text-emerald-400 font-bold pt-1">
+                  Valor Mitigado = ${diasExatos.toFixed(2)}d × R$ 158.241,06/d = ${formatBRL(op.multa_contratual_evitada_brl)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-1.5">
+            <div class="font-bold text-cyan-300 uppercase text-[11px]">4. Manobra Corretiva Prescrita pela Ordem de Produção</div>
+            <p class="text-slate-200 leading-relaxed">${op.acao_corretiva_recomendada}</p>
+          </div>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
     function abrirModalExplicacao(tipo) {
       if (!cockpitData) return;
       const modal = document.getElementById('modal-explicacao-cockpit');
@@ -1896,6 +2085,132 @@
               <div class="font-bold text-white uppercase text-[11px]">2. Torres Atualmente Sinalizadas no Semáforo (${torresAlerta.length} estruturas)</div>
               <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
                 ${listaTorresHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (tipo === 'ORDENS_PRODUCAO') {
+        tituloEl.textContent = 'Memória de Cálculo & Fontes — Ordens de Produção e Valor do Risco Mitigado';
+        subEl.textContent = 'Micro-Simulação Monte Carlo (1.000 Iterações Beta-PERT por Torre) × Penalidade Diária do Contrato EPC (Cláusula 19.2.3)';
+
+        const ops = cockpitData.ordens_producao || [];
+        const TAXA_MULTA_DIA = 158241.06;
+        const totalMitigadoBrl = ops.reduce((acc, o) => acc + (o.multa_contratual_evitada_brl || 0), 0);
+        const totalDiasEvitados = ops.reduce((acc, o) => acc + ((o.multa_contratual_evitada_brl || 0) / TAXA_MULTA_DIA), 0);
+
+        const linhasOpsHtml = ops.length === 0
+          ? `<tr><td colspan="6" class="py-3 px-3 text-slate-400">Nenhuma Ordem de Produção ativa no momento. Clique em <b>"⚡ Simular Avanço + Desvios Reais"</b> no topo para gerar as 4 OPs históricas.</td></tr>`
+          : ops.map(op => {
+              const diasExatos = (op.multa_contratual_evitada_brl || 0) / TAXA_MULTA_DIA;
+              let torresStr = '-';
+              try { torresStr = JSON.parse(op.torres_afetadas_json || '[]').join(', '); } catch (_) { torresStr = op.torres_afetadas_json || '-'; }
+              return `
+                <tr class="border-b border-slate-800/80 hover:bg-slate-800/40">
+                  <td class="py-2 px-2.5 font-mono font-bold text-rose-300">${op.numero_ordem}</td>
+                  <td class="py-2 px-2.5 font-bold text-white">Torre ${torresStr}<span class="block text-[10px] text-slate-400 font-normal">${op.frente_afetada}</span></td>
+                  <td class="py-2 px-2.5 font-mono text-amber-300 font-bold">${op.risco_detectado_pct}%<span class="block text-[10px] text-slate-400 font-normal">Limiar: ${op.limiar_baseline_pct}%</span></td>
+                  <td class="py-2 px-2.5 font-mono text-cyan-300">${diasExatos.toFixed(2)} dias<span class="block text-[10px] text-slate-400 font-normal">(~${op.impacto_estimado_prazo_dias}d P80)</span></td>
+                  <td class="py-2 px-2.5 font-mono text-slate-300">${diasExatos.toFixed(2)}d × R$ 158.241,06/d</td>
+                  <td class="py-2 px-2.5 font-mono text-emerald-400 font-bold">${formatBRL(op.multa_contratual_evitada_brl)}</td>
+                </tr>
+              `;
+            }).join('');
+
+        bodyEl.innerHTML = `
+          <div class="space-y-4 text-xs">
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">1. Como a IA Calcula o "Risco Projetado (%)" e o "Valor do Risco Mitigado (R$)"</div>
+              <p class="text-slate-300 leading-relaxed">
+                Sempre que um apontamento de campo é classificado como <b>ALTO</b> ou <b>CRÍTICO</b>, o motor estocástico (<code class="text-cyan-300">simular_impacto_ordem_monte_carlo</code> em <code class="text-cyan-300">ai_engine/monte_carlo.py</code>) executa <b>1.000 sorteios Beta-PERT</b> da paralisação potencial naquela frente caso a equipe permaneça retida na torre sem manobra corretiva:
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-rose-300 font-bold">A) Fórmula do Risco Projetado na Frente (%):</div>
+                  <div class="text-white">Risco_P80 (%) = Limiar_BL + [(Impacto_P80 ÷ 391d) × 100 × 1,65]</div>
+                  <div class="text-slate-400 text-[10px] pt-1">
+                    • <b>Limiar_BL:</b> 4,50% (definido na Ordem de Batalha OB-001).<br>
+                    • <b>391 dias:</b> Prazo construtivo base do cronograma MS Project (<code class="text-cyan-300">03-CRO.mpp</code>).<br>
+                    • <b>1,65:</b> Fator de propagação em cascata (atraso na Fundação retém Montagem e Lançamento do tramo).
+                  </div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-emerald-300 font-bold">B) Fórmula do Valor do Risco Mitigado (Multa Evitada):</div>
+                  <div class="text-white">Risco_Mitigado (R$) = Impacto_P80 (dias) × R$ 158.241,06 / dia</div>
+                  <div class="text-slate-400 text-[10px] pt-1">
+                    • <b>Fonte Contratual:</b> <code class="text-cyan-300">Contrato_EPC_LT_500_kV_-_GNA_x_Alubar.pdf</code> (Cláusula 19.2.3).<br>
+                    • <b>Multa Diária:</b> 0,10% ao dia sobre o Valor Contratual de <b>R$ 158.241.062,00</b> = <b>R$ 158.241,06/dia</b> (limitada ao teto de 10% = R$ 15.824.106,20).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-white uppercase text-[11px]">2. Decomposição Auditável das Ordens de Produção Emitidas (${ops.length} OPs)</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr class="border-b border-slate-700 text-slate-400 uppercase">
+                      <th class="py-2 px-2.5">Ordem</th>
+                      <th class="py-2 px-2.5">Torre / Frente</th>
+                      <th class="py-2 px-2.5">Risco P80 (%)</th>
+                      <th class="py-2 px-2.5">Atraso P80 Mitigado</th>
+                      <th class="py-2 px-2.5">Equação Contratual (Cláus. 19.2.3)</th>
+                      <th class="py-2 px-2.5">Valor Mitigado (R$)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${linhasOpsHtml}
+                    ${ops.length > 0 ? `
+                    <tr class="bg-slate-950 font-bold text-white">
+                      <td class="py-2.5 px-2.5 font-mono text-cyan-400" colspan="3">TOTAL CONSOLIDADO MITIGADO PELAS ORDENS DE PRODUÇÃO</td>
+                      <td class="py-2.5 px-2.5 font-mono text-cyan-300">${totalDiasEvitados.toFixed(2)} dias</td>
+                      <td class="py-2.5 px-2.5 font-mono text-slate-300">${totalDiasEvitados.toFixed(2)}d × R$ 158.241,06/d</td>
+                      <td class="py-2.5 px-2.5 font-mono text-emerald-400">${formatBRL(totalMitigadoBrl)}</td>
+                    </tr>` : ''}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">3. Parâmetros Beta-PERT (1.000 Sorteios) por Tipologia de Desvio e Documento-Fonte</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr class="border-b border-slate-700 text-slate-400 uppercase">
+                      <th class="py-2 px-2.5">Tipologia do Desvio na OP</th>
+                      <th class="py-2 px-2.5">Dist. Beta-PERT (Otim. / Prov. / Pessim.)</th>
+                      <th class="py-2 px-2.5">Documento de Engenharia que Orienta a Ação Corretiva</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-rose-300">Geotecnia SPT &gt; 30 (Torre SEM Opção 2 BSE-M)</td>
+                      <td class="py-2 px-2.5 font-mono">O = 5,5d | M = 8,5d | P = 13,0d</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-MDE-00071-0.pdf</code> (7 torres SPT&gt;30 sem bloco pré-dimensionado) + <code class="text-cyan-300">06-PRO-00002-2.pdf</code> (Item 4)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-amber-300">Geotecnia SPT &gt; 30 (Torre COM Opção 2 BSE-M)</td>
+                      <td class="py-2 px-2.5 font-mono">O = 2,5d | M = 4,5d | P = 7,5d</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-MDE-00071-0.pdf</code> (Migração imediata para bloco sapata pré-calculado Nota 10.3)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-cyan-300">Alagamento em Baixada (Área Alagável)</td>
+                      <td class="py-2 px-2.5 font-mono">O = 3,5d | M = 6,0d | P = 10,0d</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-00001-5.xlsx</code> (Nota 12.11.1 — 30 torres com exigência de afloramento ΔH &ge; 60cm)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-purple-300">Bloqueio de Travessia Crítica / Fundiário</td>
+                      <td class="py-2 px-2.5 font-mono">O = 5,0d | M = 8,5d | P = 14,0d</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-00001-5.xlsx</code> (Notas 12.2, 12.3 e 12.4 — Janela Furnas 345kV, Enel 138kV, DER-RJ)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-emerald-300">Gargalo Logístico / Suprimento de Estacas e Aço</td>
+                      <td class="py-2 px-2.5 font-mono">O = 4,0d | M = 6,5d | P = 10,5d</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">03-CRO-0001_R0D.mpp</code> (Preservação do ritmo nominal de 0,49 a 0,51 torres/dia)</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
