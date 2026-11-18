@@ -76,46 +76,96 @@
 
     <!-- EXECUTIVE KPI STRIP -->
     <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      <div class="glass rounded-xl p-4">
-        <div class="text-xs text-slate-400">Avanço Físico Ponderado</div>
-        <div class="text-2xl font-bold text-white mt-1" id="kpi-avanco-global">0,0%</div>
-        <div class="text-[11px] text-slate-400 mt-1">Meta Período: <span id="kpi-meta-periodo" class="text-slate-200">0,0%</span></div>
-      </div>
-
-      <div class="glass rounded-xl p-4">
-        <div class="flex items-center justify-between text-xs text-slate-400">
-          <span>SPI (Monte Carlo P80)</span>
-          <span class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono" id="kpi-spi-p50">P50: 1.000</span>
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Avanço Físico Ponderado</span>
+            <button onclick="abrirModalExplicacao('EV')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition" title="Ver fórmula de ponderação e fontes">
+              ⓘ Cálculo
+            </button>
+          </div>
+          <div class="text-2xl font-bold text-white mt-1" id="kpi-avanco-global">0,0%</div>
+          <div class="text-[11px] text-slate-400 mt-1">Meta Período: <span id="kpi-meta-periodo" class="text-slate-200">0,0%</span></div>
         </div>
-        <div class="text-2xl font-bold text-emerald-400 mt-1" id="kpi-spi">1.000</div>
-        <div class="text-[11px] text-slate-400 mt-1">Desvio P80: <span id="kpi-desvio-risco" class="font-semibold text-amber-300">0,0%</span> | <span id="kpi-prob-estouro" class="text-rose-400 font-bold">P(&gt;4,5%): 0%</span></div>
-      </div>
-
-      <div class="glass rounded-xl p-4">
-        <div class="text-xs text-slate-400">Valor Agregado (EV / PV)</div>
-        <div class="text-xl font-bold text-cyan-300 mt-1" id="kpi-ev">R$ 0,00 MM</div>
-        <div class="text-[11px] text-slate-400 mt-1">CAPEX Baseline: R$ 158,24 MM</div>
-      </div>
-
-      <div class="glass rounded-xl p-4">
-        <div class="text-xs text-slate-400">Fundações Helicoidais</div>
-        <div class="text-2xl font-bold text-white mt-1"><span id="kpi-fund-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
-        <div class="text-[11px] text-emerald-400 mt-1" id="kpi-fund-pct">0,0% concluído</div>
-      </div>
-
-      <div class="glass rounded-xl p-4">
-        <div class="text-xs text-slate-400">Montagem (Autop. + GNEL)</div>
-        <div class="text-2xl font-bold text-white mt-1"><span id="kpi-mont-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
-        <div class="text-[11px] text-cyan-300 mt-1"><span id="kpi-peso-montado">0,0</span> / 2.224,5 ton aço</div>
-      </div>
-
-      <div class="glass rounded-xl p-4">
-        <div class="text-xs text-slate-400">Semáforo de Riscos IA</div>
-        <div class="flex items-center gap-3 mt-1.5">
-          <span class="px-2.5 py-1 rounded bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold text-sm" id="kpi-vermelhos">0 Críticos</span>
-          <span class="px-2.5 py-1 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-sm" id="kpi-amarelos">0 Alertas</span>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="Fórmula: EV Acumulado ÷ PV Total (EAP MS Project IDs 61–92)">
+          Fórmula: Σ(EV) ÷ R$ 158,24M (EAP .mpp)
         </div>
-        <div class="text-[11px] text-slate-400 mt-1">30 Alagáveis • 14 Travessias</div>
+      </div>
+
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>SPI (Monte Carlo P80)</span>
+            <button onclick="abrirModalExplicacao('SPI')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition" title="Ver memória de cálculo e fontes do SPI estocástico">
+              ⓘ Fonte & Cálculo
+            </button>
+          </div>
+          <div class="flex items-baseline justify-between mt-1">
+            <div class="text-2xl font-bold text-emerald-400" id="kpi-spi">1.000</div>
+            <span class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono" id="kpi-spi-p50">P50: 1.000</span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">Desvio P80: <span id="kpi-desvio-risco" class="font-semibold text-amber-300">0,0%</span> | <span id="kpi-prob-estouro" class="text-rose-400 font-bold">P(&gt;4,5%): 0%</span></div>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="Fontes: 03-CRO-0001.mpp (391d) + 40-MDE-00071 + 40-LLI-00001-5">
+          Fonte: 03-CRO.mpp (391d) + MDE-00071
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Valor Agregado (EV / PV)</span>
+            <button onclick="abrirModalExplicacao('EV')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition" title="Ver memória de cálculo do Valor Agregado (EV) por pacote">
+              ⓘ Como Calcula
+            </button>
+          </div>
+          <div class="text-xl font-bold text-cyan-300 mt-1" id="kpi-ev">R$ 0,00 MM</div>
+          <div class="text-[11px] text-slate-400 mt-1">CAPEX Baseline: R$ 158,24 MM</div>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="EV = Σ(PV_pacote × %Torres_Concluídas) | Fonte: Contrato EPC + .mpp">
+          EV = Σ(PV × %Torres) • Contrato EPC
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="text-xs text-slate-400">Fundações Helicoidais</div>
+          <div class="text-2xl font-bold text-white mt-1"><span id="kpi-fund-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
+          <div class="text-[11px] text-emerald-400 mt-1" id="kpi-fund-pct">0,0% concluído</div>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="Fonte: 40-LLI-00001-5.xlsx + Proc. 06-PRO-00002 (Torque >= 4.500 lb.ft)">
+          Fonte: LLI Rev.5 + 06-PRO-00002
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="text-xs text-slate-400">Montagem (Autop. + GNEL)</div>
+          <div class="text-2xl font-bold text-white mt-1"><span id="kpi-mont-conc">0</span><span class="text-sm text-slate-400 font-normal"> / 84 torres</span></div>
+          <div class="text-[11px] text-cyan-300 mt-1"><span id="kpi-peso-montado">0,0</span> / 2.224,5 ton aço</div>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="Fonte: Lista de Construção 40-LLI-00001-5.xlsx (57 Autop. + 27 Estaiadas)">
+          Fonte: LLI Rev.5 (57 Autop. / 27 GNEL)
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Semáforo de Riscos IA</span>
+            <button onclick="abrirModalExplicacao('SEMAFORO')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition" title="Ver critérios de classificação e documentos-fonte dos alertas">
+              ⓘ Fonte & Regras
+            </button>
+          </div>
+          <div class="flex items-center gap-2 mt-1.5">
+            <button onclick="abrirModalExplicacao('SEMAFORO')" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 font-bold text-xs transition" id="kpi-vermelhos">0 Críticos</button>
+            <button onclick="abrirModalExplicacao('SEMAFORO')" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 font-bold text-xs transition" id="kpi-amarelos">0 Alertas</button>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">30 Alagáveis • 14 Travessias</div>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-2 pt-1.5 border-t border-slate-800/80 font-mono truncate" title="Fontes: MDE-00071 (SPT>30) + LLI Notas 12.4/12.11.1 + RDO Fiscal">
+          Fonte: MDE-00071 + LLI Notas 12.4/12.11
+        </div>
       </div>
     </section>
 
@@ -231,21 +281,65 @@
       <div class="glass rounded-xl p-5 space-y-5 border border-cyan-500/30">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold uppercase">Motor Estocástico Ativo</span>
               <h2 class="font-bold text-base text-white">Simulação de Risco de Prazo & Exposição Contratual — Modelo de Monte Carlo (2.000 Iterações Beta-PERT)</h2>
+              <button onclick="abrirModalExplicacao('MONTE_CARLO')" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-bold transition flex items-center gap-1">
+                ⓘ Memória de Cálculo & Fontes de Engenharia
+              </button>
             </div>
             <p class="text-xs text-slate-400 mt-1">
-              Calibrado com as incertezas reais da engenharia: 12 torres com SPT &gt; 30 (7 sem contingência BSE-M no doc. <code class="text-cyan-300">40-MDE-00071</code>), 30 torres alagáveis (Nota 12.11.1) e 14 travessias críticas (Furnas/Enel/DER-RJ).
+              Calibrado com as incertezas reais da engenharia: 12 torres com SPT &gt; 30 (7 sem contingência BSE-M no doc. <code class="text-cyan-300">40-MDE-00071</code>), 30 torres alagáveis (<code class="text-cyan-300">40-LLI-00001-5 Nota 12.11.1</code>) e 14 travessias críticas (<code class="text-cyan-300">Notas 12.2 / 12.3 / 12.4</code> — Furnas/Enel/DER-RJ).
             </p>
           </div>
           <div class="flex items-center gap-3 bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800">
             <div class="text-right">
               <span class="text-[11px] text-slate-400 block">Probabilidade de Estouro do Limiar (<span id="mc-limiar-label">4,50%</span>)</span>
               <strong id="mc-prob-estouro" class="text-lg font-extrabold text-rose-400">0,0%</strong>
+              <span class="text-[10px] text-slate-500 block font-mono">Fonte Limiar: Baseline V1 (OB-001)</span>
             </div>
           </div>
         </div>
+
+        <!-- QUADRO RÁPIDO EXPANSÍVEL: FONTES & FÓRMULAS PARA O OPERADOR/ANALISTA -->
+        <details class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs">
+          <summary class="cursor-pointer font-bold text-cyan-300 flex items-center justify-between select-none">
+            <span>📘 Guia Rápido do Analista: Como ler os Percentis (P10, P50, P80, P90) e quais Documentos alimentam o Motor Estocástico (Clique para abrir)</span>
+            <span class="text-[11px] text-slate-400 font-normal">Rastreabilidade Completa</span>
+          </summary>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-300">
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">1. Como funciona o Sorteio (2.000 Iterações)</div>
+              <p class="text-slate-400 leading-relaxed">
+                O motor simula <b>2.000 vezes</b> o restante da obra aplicando sorteios <b>Beta-PERT</b> (Otimista, Mais Provável, Pessimista) e eventos <b>Bernoulli</b> apenas sobre as <b>torres ainda não concluídas</b>. À medida que o fiscal conclui torres em campo, a incerteza residual cai automaticamente.
+              </p>
+              <div class="text-cyan-300 font-mono text-[10px] pt-1">
+                Atraso Líquido = Σ(Impactos) × 0,55 (Fator de Paralelismo das 2 Frentes: Açu e Campos 2)
+              </div>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">2. Fórmulas do SPI Projetado e VaR de Multa</div>
+              <div class="font-mono text-[11px] text-emerald-300 bg-slate-900 p-1.5 rounded border border-slate-800">
+                SPI = 391 dias ÷ (391 dias + Atraso_Dias)
+              </div>
+              <p class="text-slate-400 leading-relaxed">
+                • <b>Prazo Base (391 dias):</b> Extraído do cronograma <code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D.mpp</code> (Civil + Montagem + Lançamento).<br>
+                • <b>P50 (Mediana):</b> Cenário mais provável (50% de chance).<br>
+                • <b>P80 (Tático):</b> 80% de confiança estatística — gatilho oficial de emissão de <b>Ordens de Produção</b>.<br>
+                • <b>VaR Multa:</b> <code class="text-rose-300">0,25% do CAPEX (R$ 158,24M)</code> por semana de atraso além do limiar (<code class="text-cyan-300">Contrato EPC Cláusula 19.2.3</code>).
+              </p>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white">3. Documentos-Fonte dos 4 Vetores de Risco</div>
+              <ul class="space-y-1 text-slate-400">
+                <li>🔴 <b>Geotecnia (SPT &gt; 30):</b> Memorial de Sondagem <code class="text-cyan-300">40-MDE-00071-0.pdf</code> (12 torres NSPT &gt; 30; 7 sem opção BSE-M) + Proc. <code class="text-cyan-300">06-PRO-00002-2.pdf</code> (Item 4).</li>
+                <li>🟡 <b>Alagamento (30 torres):</b> Lista de Construção <code class="text-cyan-300">40-LLI-00001-5.xlsx</code> (Nota 12.11.1 — afloramento ΔH &ge; 60cm).</li>
+                <li>🔵 <b>Travessias (14 vãos):</b> Lista de Construção <code class="text-cyan-300">40-LLI-00001-5.xlsx</code> (Notas 12.2, 12.3 e 12.4 — Furnas 345kV, Enel 138kV, DER-RJ).</li>
+                <li>🟣 <b>Logística/Ritmo:</b> Cronograma <code class="text-cyan-300">03-CRO-0001_R0D.mpp</code> (0,49 a 0,51 torres/dia).</li>
+              </ul>
+            </div>
+          </div>
+        </details>
 
         <!-- CARDS DE PERCENTIS P10 / P50 / P80 / P90 -->
         <div id="mc-cards-percentis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
@@ -944,7 +1038,7 @@
         `;
       });
 
-      // Renderizar Tornado de Sensibilidade
+      // Renderizar Tornado de Sensibilidade com Indicação Direta da Fonte Documental
       const tornDiv = document.getElementById('mc-tornado');
       tornDiv.innerHTML = '';
       mc.tornado_sensibilidade.forEach(t => {
@@ -955,6 +1049,14 @@
           purple: 'bg-purple-400 text-purple-300'
         };
         const barColor = (corMap[t.cor] || 'bg-cyan-400').split(' ')[0];
+        let fonteDoc = 'Fonte: Cronograma 03-CRO-0001_R0D.mpp (Produtividade das Frentes)';
+        if (t.driver.toUpperCase().includes('GEOTECNIA') || t.driver.toUpperCase().includes('SPT')) {
+          fonteDoc = 'Fonte: Memorial de Sondagem 40-MDE-00071-0.pdf + Proc. 06-PRO-00002-2.pdf (Item 4)';
+        } else if (t.driver.toUpperCase().includes('ALAG')) {
+          fonteDoc = 'Fonte: Lista de Construção 40-LLI-00001-5.xlsx (Nota 12.11.1 — ΔH >= 60cm)';
+        } else if (t.driver.toUpperCase().includes('TRAVESSIA')) {
+          fonteDoc = 'Fonte: Lista de Construção 40-LLI-00001-5.xlsx (Notas 12.2 / 12.3 / 12.4)';
+        }
         tornDiv.innerHTML += `
           <div class="space-y-1">
             <div class="flex items-center justify-between text-[11px]">
@@ -964,6 +1066,7 @@
             <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
               <div class="${barColor} h-full" style="width: ${Math.min(100, t.participacao_variancia_pct)}%"></div>
             </div>
+            <div class="text-[10px] text-slate-400 font-mono">${fonteDoc}</div>
           </div>
         `;
       });
@@ -1638,7 +1741,263 @@
       switchTab('tab-mobile');
     }
 
+    function focarTorreNoMapa(cod) {
+      fecharModalExplicacao();
+      torreSelecionada = cod;
+      renderizarDetalheTorre(cod);
+      const est = (cockpitData.estruturas || []).find(e => e.codigo_projeto === cod);
+      if (est && mapInstance) {
+        mapInstance.setView([est.latitude, est.longitude], 14);
+      }
+    }
+
+    function fecharModalExplicacao() {
+      const m = document.getElementById('modal-explicacao-cockpit');
+      if (m) m.classList.add('hidden');
+    }
+
+    function abrirModalExplicacao(tipo) {
+      if (!cockpitData) return;
+      const modal = document.getElementById('modal-explicacao-cockpit');
+      const tituloEl = document.getElementById('modal-exp-titulo');
+      const subEl = document.getElementById('modal-exp-subtitulo');
+      const bodyEl = document.getElementById('modal-exp-body');
+      const k = cockpitData.kpis_tempo_real;
+      const mc = cockpitData.monte_carlo;
+      const pacs = cockpitData.pacotes_cronograma || [];
+      const ests = cockpitData.estruturas || [];
+
+      if (tipo === 'EV') {
+        tituloEl.textContent = 'Memória de Cálculo & Fontes — Valor Agregado (EV / PV) e Avanço Físico Ponderado';
+        subEl.textContent = 'Rastreabilidade Financeira e Física entre Campo (84 Torres) e EAP do MS Project (.mpp)';
+
+        const resumos = pacs.filter(p => p.eh_resumo_eap && p.uid_ms_project !== 61);
+        const linhasHtml = resumos.map(r => `
+          <tr class="border-b border-slate-800/80">
+            <td class="py-2 px-3 font-mono text-cyan-300">ID ${r.uid_ms_project} (#${r.id_tarefa_mpp})</td>
+            <td class="py-2 px-3 font-bold text-white">${r.nome_pacote}</td>
+            <td class="py-2 px-3 font-mono text-slate-300">${formatBRL(r.custo_planejado_pv_brl)}</td>
+            <td class="py-2 px-3 font-mono text-amber-300 font-bold">${r.avanco_fisico_pct.toFixed(2)}%</td>
+            <td class="py-2 px-3 font-mono text-emerald-300 font-bold">${formatBRL(r.valor_agregado_ev_brl)}</td>
+          </tr>
+        `).join('');
+
+        bodyEl.innerHTML = `
+          <div class="space-y-4 text-xs">
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">1. Regra de Cálculo Simples para o Analista</div>
+              <p class="text-slate-300 leading-relaxed">
+                O <b>Valor Agregado (EV — Earned Value)</b> mede quanto do orçamento contratual de <b>R$ 158.241.062,00</b> já foi efetivamente transformado em obra física concluída ou em andamento no campo. Cada pacote construtivo do MS Project (IDs 63 a 92) está vinculado a um conjunto específico das 84 torres:
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-emerald-300 font-bold">Fórmula do Pacote (i):</div>
+                  <div class="text-white">Avanço_i (%) = (Pontos_Torres ÷ Total_Torres_i) × 100</div>
+                  <div class="text-cyan-300">EV_i (R$) = PV_i (R$) × [Avanço_i (%) ÷ 100]</div>
+                  <div class="text-slate-400 text-[10px] pt-1">• Torre CONCLUÍDA = 1,00 pt (100%) | EM ANDAMENTO = 0,50 pt (ou 0,85 pt em Pré-Montagem)</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-amber-300 font-bold">Consolidação Global (Tempo Real):</div>
+                  <div class="text-white">EV Total Atual = <b class="text-emerald-300">${formatBRL(k.ev_agregado_atual_brl)}</b></div>
+                  <div class="text-white">PV Total Baseline = <b class="text-cyan-300">${formatBRL(k.pv_planejado_total_brl)}</b></div>
+                  <div class="text-emerald-400 font-bold pt-1">Avanço Global Ponderado = EV ÷ PV = ${k.avanco_global_pct.toFixed(2)}%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-white uppercase text-[11px]">2. Decomposição Financeira ao Vivo por Macroetapa da EAP</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase">
+                      <th class="py-2 px-3">ID EAP (MS Project)</th>
+                      <th class="py-2 px-3">Macroetapa Construtiva</th>
+                      <th class="py-2 px-3">Orçamento Planejado (PV)</th>
+                      <th class="py-2 px-3">Avanço Físico IA (%)</th>
+                      <th class="py-2 px-3">Valor Agregado Atual (EV)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${linhasHtml}
+                    <tr class="bg-slate-950 font-bold text-white">
+                      <td class="py-2.5 px-3 font-mono text-cyan-400">TOTAL EPC</td>
+                      <td class="py-2.5 px-3">CONSTRUÇÃO + COMISSIONAMENTO (IDs 61 a 92)</td>
+                      <td class="py-2.5 px-3 font-mono">${formatBRL(k.pv_planejado_total_brl)}</td>
+                      <td class="py-2.5 px-3 font-mono text-amber-300">${k.avanco_global_pct.toFixed(2)}%</td>
+                      <td class="py-2.5 px-3 font-mono text-emerald-400">${formatBRL(k.ev_agregado_atual_brl)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-1.5">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">3. Documentos-Fonte que Orientam este Cálculo</div>
+              <ul class="space-y-1 text-slate-300">
+                <li>📄 <b>Contrato EPC (<code class="text-cyan-300">Contrato_EPC_LT_500_kV_-_GNA_x_Alubar.pdf</code>):</b> Define o CAPEX global de <b>R$ 158.241.062,00</b> distribuído nos eventos de medição física.</li>
+                <li>📊 <b>Cronograma MS Project (<code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D_06-09-22.mpp</code>):</b> Estrutura Analítica do Projeto (IDs 61 a 92) com pesos financeiros por frente e disciplina.</li>
+                <li>📋 <b>Lista de Construção Rev.5 (<code class="text-cyan-300">40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx</code>):</b> Quantitativo oficial das 84 torres (57 Autoportantes + 27 Estaiadas GNEL; 27 Ancoragens finalizadas por <i>Fechamento de Jumper</i> e 57 Suspensões finalizadas por <i>Grampeamento</i>).</li>
+              </ul>
+            </div>
+          </div>
+        `;
+      } else if (tipo === 'SEMAFORO') {
+        tituloEl.textContent = 'Fontes & Critérios de Classificação — Semáforo de Riscos IA';
+        subEl.textContent = 'Cruzamento automático entre RDO/Checklist do Fiscal e Restrições de Engenharia de cada Torre';
+
+        const torresAlerta = ests.filter(e => e.criticidade_ia === 'VERMELHO' || e.criticidade_ia === 'AMARELO');
+        const listaTorresHtml = torresAlerta.length === 0
+          ? `<div class="p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/40 text-emerald-300">✅ Nenhuma torre encontra-se em estado Crítico (Vermelho) ou Alerta (Amarelo) neste momento. (Clique em <b>"⚡ Simular Avanço + Desvios Reais"</b> no topo para testar os 4 desvios históricos).</div>`
+          : torresAlerta.map(t => `
+              <div class="p-3 rounded-lg bg-slate-950 border ${t.criticidade_ia === 'VERMELHO' ? 'border-rose-500/50' : 'border-amber-500/50'} flex flex-wrap items-center justify-between gap-2">
+                <div class="space-y-0.5 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.criticidade_ia === 'VERMELHO' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'}">${t.criticidade_ia}</span>
+                    <strong class="text-white">Torre ${t.codigo_projeto} (${t.tipo_estrutura} • ${t.tipo_fundacao})</strong>
+                    <span class="text-cyan-300 font-mono text-[11px]">Categoria: ${t.ultimo_risco_categoria}</span>
+                  </div>
+                  <p class="text-slate-400 text-[11px]">${t.ultima_observacao || 'Alerta detectado pelo motor de IA.'}</p>
+                </div>
+                <button onclick="focarTorreNoMapa('${t.codigo_projeto}')" class="px-2.5 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-semibold text-[11px]">
+                  📍 Ver no Mapa
+                </button>
+              </div>
+            `).join('');
+
+        bodyEl.innerHTML = `
+          <div class="space-y-4 text-xs">
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">1. Como o Motor de IA Define as Cores do Semáforo</div>
+              <p class="text-slate-300 leading-relaxed">
+                Cada apontamento sincronizado pelo fiscal passa pelo classificador especialista (<code class="text-cyan-300">classificar_relatorio_campo_ia</code>), que analisa o texto/voz do RDO e os parâmetros técnicos do checklist (torque em <code class="text-cyan-300">lb.ft</code> e profundidade em <code class="text-cyan-300">m</code>) contra a ficha técnica da torre:
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div class="p-3 rounded-lg bg-slate-950 border border-rose-500/40 space-y-1">
+                  <div class="font-bold text-rose-300">🔴 VERMELHO (Crítico — Dispara Ordem de Produção)</div>
+                  <ul class="text-slate-300 space-y-1 text-[11px]">
+                    <li>• <b>Geotecnia (SPT &gt; 30 / Recusa):</b> Impenetrabilidade, matacão ou recusa de cravação da estaca helicoidal antes da profundidade mínima (<code class="text-cyan-300">40-MDE-00071</code> & <code class="text-cyan-300">06-PRO-00002</code>).</li>
+                    <li>• <b>Alagamento em Baixada Mapeada:</b> Nível d'água acima do afloramento de 60cm nas 30 torres da <code class="text-cyan-300">Nota 12.11.1 (40-LLI-00001-5)</code>.</li>
+                    <li>• <b>Bloqueio de Travessia / Fundiário:</b> Retenção nos 14 vãos de travessia (<code class="text-cyan-300">Notas 12.2 / 12.3 / 12.4</code> — Furnas 345kV, Enel 138kV, DER-RJ).</li>
+                    <li>• <b>Ruptura Logística / Equipamento:</b> Falta de extensões helicoidais, treliças ou parada de máquina.</li>
+                  </ul>
+                </div>
+                <div class="p-3 rounded-lg bg-slate-950 border border-amber-500/40 space-y-1">
+                  <div class="font-bold text-amber-300">🟡 AMARELO (Alerta Técnico Preventivo)</div>
+                  <ul class="text-slate-300 space-y-1 text-[11px]">
+                    <li>• <b>Torque Abaixo do Nominal (&lt; 4.500 lb.ft):</b> Quando o torque médio nos últimos 30cm fica abaixo da especificação do <code class="text-cyan-300">Anexo I do Proc. 06-PRO-00002-2.pdf</code>, exigindo acoplamento de extensão lisa adicional.</li>
+                    <li>• <b>Chuva / Lama em Terreno Não Alagável:</b> Ocorrência climática em torre fora da lista da Nota 12.11.1.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-white uppercase text-[11px]">2. Torres Atualmente Sinalizadas no Semáforo (${torresAlerta.length} estruturas)</div>
+              <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                ${listaTorresHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // SPI ou MONTE_CARLO
+        tituloEl.textContent = 'Memória de Cálculo & Fontes — SPI Estocástico e Motor de Monte Carlo (2.000 Iterações)';
+        subEl.textContent = 'Modelagem Probabilística Beta-PERT + Bernoulli calibrada pelos Documentos Executivos da LT 500 kV';
+
+        const p50 = mc.percentis.P50;
+        const p80 = mc.percentis.P80;
+        const p90 = mc.percentis.P90;
+
+        bodyEl.innerHTML = `
+          <div class="space-y-4 text-xs">
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">1. Como o SPI (Monte Carlo) é Calculado em Tempo Real</div>
+              <p class="text-slate-300 leading-relaxed">
+                Diferente de uma planilha estática, o motor executa <b>2.000 simulações da obra</b> a cada atualização de campo. Em cada iteração, ele sorteia o atraso residual das torres ainda não concluídas e aplica o fator de paralelismo das 2 frentes simultâneas (<b>0,55</b> — Frente 01 Porto do Açu e Frente 02 Campos 2):
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-cyan-300 font-bold">Memória de Cálculo P80 (Referência Tática):</div>
+                  <div class="text-white">• Prazo Construtivo Baseline = <b>391 dias</b> (<code class="text-cyan-300">03-CRO.mpp</code>)</div>
+                  <div class="text-white">• Atraso Sorteado no P80 = <b>+${p80.atraso_dias} dias</b> (${p80.desvio_prazo_pct.toFixed(2)}%)</div>
+                  <div class="text-emerald-300 font-bold">• SPI (P80) = 391 ÷ (391 + ${p80.atraso_dias}) = ${p80.spi_projetado.toFixed(3)}</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] space-y-1">
+                  <div class="text-amber-300 font-bold">Comparativo entre Cenários:</div>
+                  <div class="text-white">• <b>P50 (Provável / 50%):</b> +${p50.atraso_dias}d | SPI = <b>${p50.spi_projetado.toFixed(3)}</b> | Fim: ${p50.data_termino_projetada}</div>
+                  <div class="text-white">• <b>P80 (Conservador / 80%):</b> +${p80.atraso_dias}d | SPI = <b>${p80.spi_projetado.toFixed(3)}</b> | Fim: ${p80.data_termino_projetada}</div>
+                  <div class="text-rose-300">• <b>P90 (Extremo / 90%):</b> +${p90.atraso_dias}d | VaR Multa: <b>${formatBRL(p90.var_multa_contratual_brl)}</b></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-white uppercase text-[11px]">2. Fontes de Engenharia e Parâmetros Beta-PERT dos 4 Vetores de Risco</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr class="border-b border-slate-700 text-slate-400 uppercase">
+                      <th class="py-2 px-2.5">Vetor de Risco (Tornado)</th>
+                      <th class="py-2 px-2.5">Documento-Fonte & Nota Técnica</th>
+                      <th class="py-2 px-2.5">Exposição Residual Atual</th>
+                      <th class="py-2 px-2.5">Distribuição Beta-PERT (O / M / P)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-rose-300">1. Geotecnia (SPT &gt; 30 &amp; Sem BSE-M)</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-MDE-14022-619-AB0-P-RAI-00071-0.pdf</code> (Memorial de Sondagem) + <code class="text-cyan-300">06-PRO-00002-2.pdf</code> (Item 4 — FVS Impenetrabilidade)</td>
+                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.torres_spt_critico_pendentes} torres SPT&gt;30 (${mc.exposicao_residual.torres_sem_bse_pendentes} sem BSE-M)</td>
+                      <td class="py-2 px-2.5 font-mono">Com BSE-M: 0,5 / 1,5 / 3,5d<br>Sem BSE-M: 2,0 / 4,5 / 9,0d (p=68%)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-amber-300">2. Hidrogeologia &amp; Áreas Alagáveis</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx</code> (Nota 12.11.1 — 30 torres na baixada com exigência ΔH &ge; 60cm)</td>
+                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.torres_alagaveis_pendentes} torres alagáveis pendentes</td>
+                      <td class="py-2 px-2.5 font-mono">Drenagem/Pranchão: 0,4 / 1,1 / 3,0d (p=35%)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-cyan-300">3. Travessias Críticas (345kV / 138kV / DER)</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx</code> (Notas 12.2, 12.3 e 12.4 — Furnas, Enel e Rodovias RJ)</td>
+                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.travessias_criticas_pendentes} travessias pendentes</td>
+                      <td class="py-2 px-2.5 font-mono">Janela Desligamento: 1,0 / 2,5 / 6,5d (p=32%)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2 px-2.5 font-bold text-purple-300">4. Logística &amp; Produtividade de Campo</td>
+                      <td class="py-2 px-2.5"><code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D.mpp</code> (Ritmos nominais de 0,49 a 0,51 torres/dia) + <code class="text-cyan-300">Contrato EPC Cláus. 19.2.3</code></td>
+                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.alertas_vermelhos_ativos} alertas críticos ativos em campo</td>
+                      <td class="py-2 px-2.5 font-mono">Variabilidade Base: 1,0 / 3,2 / 7,5d + 1,2 a 6,0d por alerta</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
     window.addEventListener('DOMContentLoaded', carregarCockpit);
   </script>
+
+  <!-- MODAL EXPLICATIVO DE RASTREABILIDADE & MEMÓRIA DE CÁLCULO (OPERADOR / ANALISTA) -->
+  <div id="modal-explicacao-cockpit" class="hidden fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">Ficha de Rastreabilidade & Auditoria Técnica</span>
+          <h3 id="modal-exp-titulo" class="text-base font-bold text-white mt-1">Memória de Cálculo</h3>
+          <p id="modal-exp-subtitulo" class="text-xs text-slate-400"></p>
+        </div>
+        <button onclick="fecharModalExplicacao()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-bold transition">
+          ✕ Fechar
+        </button>
+      </div>
+      <div id="modal-exp-body" class="p-6 overflow-y-auto flex-1"></div>
+    </div>
+  </div>
 </body>
 </html>
