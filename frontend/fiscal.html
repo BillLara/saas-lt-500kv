@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fiscal LT 500kV" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>App do Fiscal — LT 500 kV GNA II / Campos 2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #020617;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass-mob {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(51, 65, 85, 0.75);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-10">
+
+  <!-- TOP BAR MOBILE STICKY -->
+  <header class="sticky top-0 z-50 bg-slate-950/95 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-300 font-extrabold text-sm">
+        LT
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="text-sm font-extrabold text-white tracking-tight">Fiscal LT 500 kV</h1>
+          <span class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold">PWA</span>
+        </div>
+        <p class="text-[11px] text-slate-400">UTE GNA II – SE Campos 2 (84 Torres)</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <label class="flex items-center gap-1.5 cursor-pointer bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-xl">
+        <input type="checkbox" id="chk-modo-offline" onchange="toggleModoOffline()" class="rounded bg-slate-800 border-slate-600 text-amber-500" />
+        <span id="lbl-status-rede" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">ONLINE</span>
+      </label>
+    </div>
+  </header>
+
+  <!-- BANNER DE INSTALAÇÃO PWA (ANDROID / IPHONE) -->
+  <div id="pwa-install-banner" class="mx-3 mt-3 p-3 rounded-xl bg-cyan-950/50 border border-cyan-500/40 flex items-center justify-between gap-2 text-xs">
+    <div class="text-slate-200">
+      <strong class="text-cyan-300 block">📲 Instalar no Telefone (Custo Zero)</strong>
+      <span class="text-[11px] text-slate-400">Funciona offline na faixa de servidão sem precisar de loja de aplicativos.</span>
+    </div>
+    <button onclick="instalarPWA()" class="px-3 py-2 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-xs whitespace-nowrap">
+      Instalar App
+    </button>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL DO FORMULÁRIO -->
+  <main class="flex-1 px-3 pt-3 max-w-lg w-full mx-auto space-y-3.5">
+
+    <!-- IDENTIFICAÇÃO DO FISCAL -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-2 text-xs">
+      <div class="flex items-center justify-between">
+        <label class="text-slate-400 font-semibold">👷 Nome / Equipe do Fiscal:</label>
+        <a href="/" class="text-[11px] text-cyan-400 underline">Abrir Cockpit Gestor →</a>
+      </div>
+      <input type="text" id="mob-fiscal-nome" value="Eng. Fiscal Campo — Equipe Açu/Campos" onchange="salvarNomeFiscal()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-semibold" />
+    </div>
+
+    <!-- SELEÇÃO DA ESTRUTURA + FICHA TÉCNICA DE ENGENHARIA -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-3 text-xs">
+      <div class="flex items-center justify-between">
+        <label class="text-slate-300 font-bold text-xs">1. Estrutura / Torre Inspecionada:</label>
+        <span id="badge-status-torre" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">VERDE</span>
+      </div>
+
+      <select id="mob-select-torre" onchange="aoMudarTorreMobile()" class="w-full bg-slate-950 border border-cyan-500/50 rounded-xl px-3 py-2.5 text-white font-bold text-sm"></select>
+
+      <!-- STATUS ATUAL DAS 3 ETAPAS NA TORRE -->
+      <div class="grid grid-cols-3 gap-1.5 text-[10px] text-center">
+        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+          <span class="text-slate-400 block">1. Fundação</span>
+          <strong id="st-atual-fund" class="text-slate-200 font-mono">NAO_INICIADO</strong>
+        </div>
+        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+          <span class="text-slate-400 block">2. Montagem</span>
+          <strong id="st-atual-mont" class="text-slate-200 font-mono">NAO_INICIADO</strong>
+        </div>
+        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+          <span class="text-slate-400 block">3. Lançamento</span>
+          <strong id="st-atual-lanc" class="text-slate-200 font-mono">NAO_INICIADO</strong>
+        </div>
+      </div>
+
+      <!-- FICHA DE ENGENHARIA DA TORRE (CACHE OFFLINE) -->
+      <div id="mob-card-engenharia" class="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-[11px]"></div>
+    </div>
+
+    <!-- GEOLOCALIZAÇÃO & CERCA ELETRÔNICA (GEOFENCING 50M) -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-2.5 text-xs">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-slate-200">2. 📍 Validação GPS (Geofencing &le; 50m):</span>
+        <span id="badge-distancia-gps" class="px-2 py-0.5 rounded font-mono text-[11px] font-bold bg-emerald-500/20 text-emerald-300">Dist: 0,0m ✅</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="capturarGpsRealCelular()" class="py-2.5 px-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition">
+          📡 Ler GPS Real do Celular
+        </button>
+        <button type="button" onclick="posicionarGpsNaTorre()" class="py-2.5 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition">
+          🎯 Simular GPS na Estaca
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <span class="text-[10px] text-slate-400">Latitude Coletada</span>
+          <input type="number" step="0.000001" id="mob-lat" oninput="recalcularDistanciaPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs" />
+        </div>
+        <div>
+          <span class="text-[10px] text-slate-400">Longitude Coletada</span>
+          <input type="number" step="0.000001" id="mob-lon" oninput="recalcularDistanciaPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs" />
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2 pt-1 text-[11px] text-slate-300 cursor-pointer">
+        <input type="checkbox" id="chk-ignorar-geofence" onchange="recalcularDistanciaPreview()" class="rounded bg-slate-950 border-slate-700 text-cyan-400" />
+        <span>🔓 <b>Modo Teste Remoto:</b> Permitir envio fora do raio de 50m da torre</span>
+      </label>
+    </div>
+
+    <!-- ETAPA CONSTRUTIVA, STATUS E CHECKLIST DINÂMICO -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-3 text-xs">
+      <div class="font-bold text-slate-200">3. Etapa Construtiva &amp; Protocolo Técnico:</div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-slate-400 mb-1 text-[11px]">Disciplina / Etapa:</label>
+          <select id="mob-etapa" onchange="renderChecklistDinamico()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2.5 text-white font-semibold">
+            <option value="FUNDACAO">1. Fundação Helicoidal</option>
+            <option value="MONTAGEM">2. Montagem Metálica</option>
+            <option value="LANCAMENTO">3. Lançamento de Cabos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 text-[11px]">Status Reportado:</label>
+          <select id="mob-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2.5 text-white font-semibold">
+            <option value="CONCLUIDO">✅ CONCLUÍDO (100%)</option>
+            <option value="EM_ANDAMENTO">⏳ EM ANDAMENTO</option>
+            <option value="NAO_INICIADO">⚪ NÃO INICIADO</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CHECKLIST DINÂMICO POR DISCIPLINA E TIPO DE TORRE -->
+      <div id="mob-checklist-container" class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2"></div>
+    </div>
+
+    <!-- RELATO DE CAMPO / DITADO POR VOZ NO MICROFONE -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-2.5 text-xs">
+      <div class="flex items-center justify-between">
+        <label class="font-bold text-slate-200">4. Relato / Ocorrência de Campo (IA NLP):</label>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="btn-voz-real" onclick="iniciarDitadoVozReal()" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold flex items-center gap-1">
+            🎙️ Ditar Voz
+          </button>
+          <button type="button" onclick="preencherExemploVoz()" class="px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-semibold">
+            ⚡ Exemplo Crítico
+          </button>
+        </div>
+      </div>
+
+      <textarea id="mob-obs" rows="3" placeholder="Descreva ou dite condições de cravação (SPT/rocha), alagamento, falta de material ou travessia..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white text-xs"></textarea>
+
+      <button type="button" onclick="salvarApontamentoMobile()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg active:scale-98 transition">
+        💾 Salvar Vistoria &amp; Sincronizar com IA
+      </button>
+
+      <div id="mob-feedback" class="hidden p-3 rounded-xl text-xs"></div>
+    </div>
+
+    <!-- FILA OFFLINE-FIRST (SQLITE LOCAL / LOCALSTORAGE) -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-2.5 text-xs">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="font-bold text-white">📦 Fila Offline no Aparelho (<span id="count-fila-offline">0</span>)</span>
+          <span class="block text-[10px] text-slate-400">Armazenada localmente quando sem cobertura 4G</span>
+        </div>
+        <button onclick="sincronizarFilaOffline()" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
+          🔄 Sincronizar Fila
+        </button>
+      </div>
+      <div id="lista-fila-offline" class="space-y-1.5 text-[11px] text-slate-400"></div>
+    </div>
+
+    <!-- ÚLTIMOS APONTAMENTOS SINCRONIZADOS NA NUVEM (NEON.TECH) -->
+    <div class="glass-mob rounded-2xl p-3.5 space-y-2.5 text-xs">
+      <div class="font-bold text-white">☁️ Últimas Vistorias Sincronizadas na Nuvem</div>
+      <div id="lista-apontamentos-nuvem" class="space-y-2 max-h-60 overflow-y-auto"></div>
+    </div>
+
+  </main>
+
+  <script>
+    let estruturasLista = JSON.parse(localStorage.getItem("lt_estruturas_cache_v1") || "[]");
+    let apontamentosRecentes = [];
+    let filaOfflineSQLite = JSON.parse(localStorage.getItem("lt_fila_sqlite_v1") || "[]");
+    let deferredInstallPrompt = null;
+
+    // Registrar Service Worker para funcionamento Offline PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+    });
+
+    function instalarPWA() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; });
+      } else {
+        alert("Para instalar na Tela Inicial do seu telefone:\n\n• No Android (Chrome): Toque nos 3 pontinhos (⋮) no canto superior direito e escolha 'Adicionar à tela inicial' ou 'Instalar aplicativo'.\n• No iPhone (Safari): Toque no botão Compartilhar (quadrado com seta ↑) na barra inferior e escolha 'Adicionar à Tela de Início'.");
+      }
+    }
+
+    function salvarNomeFiscal() {
+      localStorage.setItem("lt_fiscal_nome_v1", document.getElementById('mob-fiscal-nome').value);
+    }
+
+    function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+      const R = 6371000.0;
+      const toRad = (g) => (g * Math.PI) / 180.0;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    async function inicializarAppFiscal() {
+      const nomeSalvo = localStorage.getItem("lt_fiscal_nome_v1");
+      if (nomeSalvo) document.getElementById('mob-fiscal-nome').value = nomeSalvo;
+
+      // Detectar se o navegador está sem internet física
+      if (!navigator.onLine) {
+        document.getElementById('chk-modo-offline').checked = true;
+        toggleModoOffline();
+      }
+
+      try {
+        const res = await fetch('/api/cockpit');
+        if (res.ok) {
+          const data = await res.json();
+          estruturasLista = data.estruturas || [];
+          apontamentosRecentes = data.apontamentos_recentes || [];
+          localStorage.setItem("lt_estruturas_cache_v1", JSON.stringify(estruturasLista));
+        }
+      } catch (_) {
+        document.getElementById('chk-modo-offline').checked = true;
+        toggleModoOffline();
+      }
+
+      popularSelectMobile();
+      atualizarUIFilaOffline();
+      renderizarApontamentosNuvem();
+    }
+
+    function popularSelectMobile() {
+      const sel = document.getElementById('mob-select-torre');
+      const valAtual = sel.value || "0/1";
+      sel.innerHTML = '';
+      estruturasLista.forEach(est => {
+        const opt = document.createElement('option');
+        opt.value = est.codigo_projeto;
+        const icone = est.criticidade_ia === 'VERMELHO' ? '🔴 ' : (est.criticidade_ia === 'AMARELO' ? '🟡 ' : '🟢 ');
+        opt.textContent = `${icone}Torre ${est.codigo_projeto} (Op. ${est.codigo_operacao}) — ${est.tipo_estrutura} ${est.area_alagavel ? '[💧Alag.]' : ''}`;
+        sel.appendChild(opt);
+      });
+      if (estruturasLista.some(e => e.codigo_projeto === valAtual)) {
+        sel.value = valAtual;
+      }
+      aoMudarTorreMobile();
+    }
+
+    function aoMudarTorreMobile() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = estruturasLista.find(e => e.codigo_projeto === cod);
+      if (!est) return;
+
+      document.getElementById('mob-lat').value = est.latitude;
+      document.getElementById('mob-lon').value = est.longitude;
+
+      const badge = document.getElementById('badge-status-torre');
+      badge.textContent = est.criticidade_ia || 'VERDE';
+      badge.className = `px-2 py-0.5 rounded text-[10px] font-bold ${
+        est.criticidade_ia === 'VERMELHO'
+          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+          : (est.criticidade_ia === 'AMARELO' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40')
+      }`;
+
+      document.getElementById('st-atual-fund').textContent = est.status_fundacao || 'NAO_INICIADO';
+      document.getElementById('st-atual-mont').textContent = est.status_montagem || 'NAO_INICIADO';
+      document.getElementById('st-atual-lanc').textContent = est.status_lancamento || 'NAO_INICIADO';
+
+      document.getElementById('mob-card-engenharia').innerHTML = `
+        <div class="flex justify-between text-slate-200">
+          <span><b>Silhueta:</b> ${est.tipo_estrutura} (${est.classificacao_mecanica} • ${est.arranjo_isolamento})</span>
+          <span><b>Peso:</b> ${est.peso_aco_ton}t</span>
+        </div>
+        <div class="text-slate-300"><b>Fundação Opção 1 (LLI Rev.5):</b> ${est.tipo_fundacao} | Prof. Mín: <b>${est.profundidade_minima_estaca_m}m</b></div>
+        ${est.nspt_1a8m && est.nspt_1a8m.length ? `<div class="text-slate-300"><b>Sondagem (40-MDE-00071):</b> NA = ${est.nivel_agua_spt_m}m | NSPT(1-8m): [${est.nspt_1a8m.join(', ')}]</div>` : ''}
+        ${est.opcao_2_contingencia_bse ? `<div class="text-emerald-300"><b>Opção 2 Contingência:</b> ${est.opcao_2_contingencia_bse}</div>` : ''}
+        ${est.conflito_spt_maior_30 ? `<div class="text-rose-400 font-bold">🚨 Alerta MDE-00071: NSPT máx = ${est.max_nspt_8m} (&gt; 30) nos primeiros 8m!</div>` : ''}
+        ${est.area_alagavel ? `<div class="text-cyan-300 font-semibold">💧 Área Alagável (Nota 12.11.1): Checar Afloramento ΔH &ge; 60cm</div>` : ''}
+        ${est.travessia_critica ? `<div class="text-amber-300 font-semibold">⚡ ${est.travessia_critica}</div>` : ''}
+      `;
+
+      renderChecklistDinamico();
+      recalcularDistanciaPreview();
+    }
+
+    function recalcularDistanciaPreview() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = estruturasLista.find(e => e.codigo_projeto === cod);
+      if (!est) return;
+      const lat = parseFloat(document.getElementById('mob-lat').value || est.latitude);
+      const lon = parseFloat(document.getElementById('mob-lon').value || est.longitude);
+      const dist = calcularDistanciaMetros(est.latitude, est.longitude, lat, lon);
+      const ignorar = document.getElementById('chk-ignorar-geofence').checked;
+      const badge = document.getElementById('badge-distancia-gps');
+
+      const distTexto = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(1)}m`;
+      if (dist <= 50.0) {
+        badge.textContent = `Dist: ${distTexto} (<=50m ✅)`;
+        badge.className = 'px-2 py-0.5 rounded font-mono text-[11px] font-bold bg-emerald-500/20 text-emerald-300';
+      } else if (ignorar) {
+        badge.textContent = `Dist: ${distTexto} (Teste Remoto 🔓)`;
+        badge.className = 'px-2 py-0.5 rounded font-mono text-[11px] font-bold bg-amber-500/20 text-amber-300';
+      } else {
+        badge.textContent = `Dist: ${distTexto} (>50m ❌ Bloqueado)`;
+        badge.className = 'px-2 py-0.5 rounded font-mono text-[11px] font-bold bg-rose-500/20 text-rose-300';
+      }
+    }
+
+    function posicionarGpsNaTorre() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = estruturasLista.find(e => e.codigo_projeto === cod);
+      if (!est) return;
+      document.getElementById('mob-lat').value = est.latitude;
+      document.getElementById('mob-lon').value = est.longitude;
+      recalcularDistanciaPreview();
+    }
+
+    function capturarGpsRealCelular() {
+      const fb = document.getElementById('mob-feedback');
+      if (!navigator.geolocation) {
+        fb.classList.remove('hidden');
+        fb.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/40 text-rose-200';
+        fb.textContent = '❌ Este navegador não suporta leitura de GPS nativo.';
+        return;
+      }
+      fb.classList.remove('hidden');
+      fb.className = 'p-3 rounded-xl text-xs bg-cyan-500/20 border border-cyan-500/40 text-cyan-200';
+      fb.textContent = '📡 Aguardando leitura do satélite GPS do seu telefone...';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          document.getElementById('mob-lat').value = lat.toFixed(6);
+          document.getElementById('mob-lon').value = lon.toFixed(6);
+
+          // Encontrar torre mais próxima da coordenada real do celular
+          let menorDist = Infinity;
+          let torreMaisProxima = null;
+          estruturasLista.forEach(e => {
+            const d = calcularDistanciaMetros(e.latitude, e.longitude, lat, lon);
+            if (d < menorDist) {
+              menorDist = d;
+              torreMaisProxima = e;
+            }
+          });
+
+          if (torreMaisProxima && menorDist <= 300.0) {
+            document.getElementById('mob-select-torre').value = torreMaisProxima.codigo_projeto;
+            aoMudarTorreMobile();
+            document.getElementById('mob-lat').value = lat.toFixed(6);
+            document.getElementById('mob-lon').value = lon.toFixed(6);
+          }
+
+          if (menorDist > 50.0) {
+            // Ativa automaticamente o modo teste remoto se o usuário estiver testando fora de São João da Barra / Campos
+            document.getElementById('chk-ignorar-geofence').checked = true;
+          }
+          recalcularDistanciaPreview();
+
+          const distFmt = menorDist >= 1000 ? `${(menorDist / 1000).toFixed(1)} km` : `${menorDist.toFixed(1)}m`;
+          fb.className = 'p-3 rounded-xl text-xs bg-emerald-500/20 border border-emerald-500/40 text-emerald-200';
+          fb.innerHTML = `✅ <b>GPS Real Capturado!</b> (${lat.toFixed(5)}, ${lon.toFixed(5)} • precisão ±${Math.round(pos.coords.accuracy)}m).<br>Torre mais próxima: <b>Torre ${torreMaisProxima ? torreMaisProxima.codigo_projeto : '-'}</b> (${distFmt}). ${menorDist > 50 ? '<i>Modo Teste Remoto ativado automaticamente por você estar fora do canteiro.</i>' : ''}`;
+        },
+        (err) => {
+          fb.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/40 text-rose-200';
+          fb.textContent = `❌ Permissão de GPS negada ou indisponível (${err.message}). Você pode usar o botão 'Simular GPS na Estaca'.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function renderChecklistDinamico() {
+      const cod = document.getElementById('mob-select-torre').value;
+      const est = estruturasLista.find(e => e.codigo_projeto === cod) || {};
+      const etapa = document.getElementById('mob-etapa').value;
+      const div = document.getElementById('mob-checklist-container');
+
+      if (etapa === 'FUNDACAO') {
+        div.innerHTML = `
+          <div class="font-bold text-cyan-300 text-[11px]">Protocolo Anexo I — Estaca Helicoidal (06-PRO-00002)</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-[10px] text-slate-400">Torque Médio Final (lb.ft)</span>
+              <input type="number" id="chk-torque" value="5800" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400">Profundidade Atingida (m)</span>
+              <input type="number" step="0.1" id="chk-prof" value="${est.profundidade_minima_estaca_m || 6.6}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+          <label class="flex items-center gap-2 pt-1">
+            <input type="checkbox" checked class="rounded bg-slate-900" />
+            <span class="text-[11px]">Inclinação conferida (Desvio &le; ±3°) e Afloramento &ge; ${est.area_alagavel ? '60cm (Alagável Nota 12.11.1)' : '50cm'}</span>
+          </label>
+        `;
+      } else if (etapa === 'MONTAGEM') {
+        div.innerHTML = `
+          <div class="font-bold text-cyan-300 text-[11px]">Checklist de Montagem (${est.tipo_estrutura} — ${est.classificacao_mecanica})</div>
+          <label class="flex items-center gap-2"><input type="checkbox" checked /> <span class="text-[11px]">Torque de parafusos ASTM A325/A572 conferido</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" checked /> <span class="text-[11px]">${est.classificacao_mecanica === 'ESTAIADA' ? 'Tensão dos 4 estais e prumo do mastro central validados' : 'Prumo e revisão final de montantes autoportantes concluídos'}</span></label>
+        `;
+      } else {
+        const ehAncoragem = est.arranjo_isolamento === 'ANCORAGEM';
+        div.innerHTML = `
+          <div class="font-bold text-cyan-300 text-[11px]">
+            Checklist Lançamento — Torre de ${ehAncoragem ? 'ANCORAGEM (Marco: Fechamento de Jumper — ID 89)' : 'SUSPENSÃO (Marco: Grampeamento — ID 86)'}
+          </div>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked />
+            <span class="text-[11px]">Cadeias ${est.cadeia_isoladores || (ehAncoragem ? 'AD4C/AS4C' : 'SSI4C')} e Vão a Vante (${est.vao_vante_m}m) nivelados</span>
+          </label>
+          <label class="flex items-center gap-2 font-semibold ${ehAncoragem ? 'text-amber-300' : 'text-emerald-300'}">
+            <input type="checkbox" checked />
+            <span class="text-[11px]">${ehAncoragem ? '⚡ Marco Finalizador: Fechamento dos Jumpers (Ré ↔ Vante) concluído' : '🔩 Marco Finalizador: Grampeamento dos 4 subcondutores CAL 993 kcmil + OPGW concluído'}</span>
+          </label>
+        `;
+      }
+    }
+
+    function iniciarDitadoVozReal() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        preencherExemploVoz();
+        return;
+      }
+      const btn = document.getElementById('btn-voz-real');
+      const rec = new SpeechRec();
+      rec.lang = 'pt-BR';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+
+      btn.textContent = '🔴 Ouvindo...';
+      rec.onresult = (event) => {
+        const transcricao = event.results[0][0].transcript;
+        const campo = document.getElementById('mob-obs');
+        campo.value = (campo.value ? campo.value + ' ' : '') + transcricao;
+      };
+      rec.onerror = () => { btn.textContent = '🎙️ Ditar Voz'; };
+      rec.onend = () => { btn.textContent = '🎙️ Ditar Voz'; };
+      rec.start();
+    }
+
+    function preencherExemploVoz() {
+      const cod = document.getElementById('mob-select-torre').value;
+      document.getElementById('mob-etapa').value = 'FUNDACAO';
+      document.getElementById('mob-status').value = 'EM_ANDAMENTO';
+      renderChecklistDinamico();
+      document.getElementById('mob-obs').value = `Ditado Fiscal na Torre ${cod}: Encontrada camada de rocha / matacão impenetrável com SPT > 30 a 4,1m de profundidade durante rotação da seção guia. Torque subiu no limite da retroescavadeira.`;
+    }
+
+    function toggleModoOffline() {
+      const off = document.getElementById('chk-modo-offline').checked;
+      const lbl = document.getElementById('lbl-status-rede');
+      if (off) {
+        lbl.textContent = 'OFFLINE (SQLite)';
+        lbl.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]';
+      } else {
+        lbl.textContent = 'ONLINE (4G)';
+        lbl.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]';
+      }
+    }
+
+    async function salvarApontamentoMobile() {
+      const payload = {
+        sqlite_local_id: 'SQLITE-MOB-' + Date.now(),
+        codigo_projeto: document.getElementById('mob-select-torre').value,
+        fiscal_nome: document.getElementById('mob-fiscal-nome').value || 'Fiscal de Campo (App Mobile)',
+        etapa: document.getElementById('mob-etapa').value,
+        status_reportado: document.getElementById('mob-status').value,
+        latitude_coleta: parseFloat(document.getElementById('mob-lat').value),
+        longitude_coleta: parseFloat(document.getElementById('mob-lon').value),
+        observacao_texto: document.getElementById('mob-obs').value,
+        ignorar_trava_geofence_teste: document.getElementById('chk-ignorar-geofence').checked,
+        checklist: {
+          torque_obtido_lbft: document.getElementById('chk-torque') ? parseFloat(document.getElementById('chk-torque').value) : null,
+          profundidade_m: document.getElementById('chk-prof') ? parseFloat(document.getElementById('chk-prof').value) : null
+        }
+      };
+
+      const fb = document.getElementById('mob-feedback');
+      fb.classList.remove('hidden');
+
+      if (document.getElementById('chk-modo-offline').checked || !navigator.onLine) {
+        filaOfflineSQLite.push(payload);
+        localStorage.setItem("lt_fila_sqlite_v1", JSON.stringify(filaOfflineSQLite));
+        atualizarUIFilaOffline();
+        fb.className = 'p-3 rounded-xl text-xs bg-amber-500/20 border border-amber-500/40 text-amber-200';
+        fb.textContent = `📦 Sem internet: Vistoria da Torre ${payload.codigo_projeto} salva na fila local do telefone!`;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/campo/sincronizar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          fb.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/50 text-rose-200';
+          fb.textContent = `❌ ${data.detail}`;
+          return;
+        }
+
+        fb.className = 'p-3 rounded-xl text-xs bg-emerald-500/20 border border-emerald-500/40 text-emerald-200';
+        fb.innerHTML = `✅ <b>Sincronizado com o Banco Neon.tech!</b> (Distância GPS: ${data.distancia_torre_metros}m)<br>• Risco IA: <b>${data.analise_ia.nivel_risco_ia}</b> (${data.analise_ia.categoria_problema_ia})${data.ordem_producao_gerada ? `<br>🚨 Emitida Ordem de Produção <b>${data.ordem_producao_gerada.numero_ordem}</b> no Cockpit do Gestor!` : ''}`;
+        document.getElementById('mob-obs').value = '';
+        await inicializarAppFiscal();
+      } catch (_) {
+        filaOfflineSQLite.push(payload);
+        localStorage.setItem("lt_fila_sqlite_v1", JSON.stringify(filaOfflineSQLite));
+        atualizarUIFilaOffline();
+        fb.className = 'p-3 rounded-xl text-xs bg-amber-500/20 border border-amber-500/40 text-amber-200';
+        fb.textContent = `📦 Falha momentânea de rede: Vistoria da Torre ${payload.codigo_projeto} guardada na fila offline do aparelho!`;
+      }
+    }
+
+    function atualizarUIFilaOffline() {
+      document.getElementById('count-fila-offline').textContent = filaOfflineSQLite.length;
+      const div = document.getElementById('lista-fila-offline');
+      if (filaOfflineSQLite.length === 0) {
+        div.innerHTML = 'Nenhum registro pendente na fila offline do aparelho.';
+        return;
+      }
+      div.innerHTML = filaOfflineSQLite.map(item => `
+        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex justify-between items-center">
+          <span><b>Torre ${item.codigo_projeto}</b> • ${item.etapa} → ${item.status_reportado}</span>
+          <span class="text-amber-400 font-mono text-[10px]">${item.sqlite_local_id}</span>
+        </div>
+      `).join('');
+    }
+
+    async function sincronizarFilaOffline() {
+      if (filaOfflineSQLite.length === 0) return;
+      document.getElementById('chk-modo-offline').checked = false;
+      toggleModoOffline();
+      for (const item of filaOfflineSQLite) {
+        await fetch('/api/campo/sincronizar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item)
+        });
+      }
+      filaOfflineSQLite = [];
+      localStorage.setItem("lt_fila_sqlite_v1", "[]");
+      atualizarUIFilaOffline();
+      await inicializarAppFiscal();
+    }
+
+    function renderizarApontamentosNuvem() {
+      const div = document.getElementById('lista-apontamentos-nuvem');
+      if (!apontamentosRecentes || apontamentosRecentes.length === 0) {
+        div.innerHTML = `<div class="text-xs text-slate-400">Nenhuma vistoria sincronizada ainda.</div>`;
+        return;
+      }
+      div.innerHTML = apontamentosRecentes.slice(0, 10).map(a => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white">Torre ${a.codigo_projeto} • ${a.etapa} (${a.status_reportado})</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${a.nivel_risco_ia === 'CRITICO' || a.nivel_risco_ia === 'ALTO' ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}">
+              ${a.nivel_risco_ia}
+            </span>
+          </div>
+          <div class="text-slate-400 text-[11px]">"${a.observacao_texto || 'Sem observações'}"</div>
+        </div>
+      `).join('');
+    }
+
+    window.addEventListener('online', () => {
+      document.getElementById('chk-modo-offline').checked = false;
+      toggleModoOffline();
+    });
+    window.addEventListener('offline', () => {
+      document.getElementById('chk-modo-offline').checked = true;
+      toggleModoOffline();
+    });
+    window.addEventListener('DOMContentLoaded', inicializarAppFiscal);
+  </script>
+</body>
+</html>

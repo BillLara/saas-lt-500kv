@@ -968,7 +968,23 @@ def aprovar_ordem_producao(ordem_id: str):
     return {"sucesso": True}
 
 
-# Servir o Frontend (Cockpit do Gestor + App Mobile Offline-First do Fiscal)
+# Servir o Frontend (Cockpit do Gestor + App Mobile PWA Offline-First do Fiscal)
 @app.get("/")
 def serve_index():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+
+@app.get("/fiscal")
+@app.get("/app")
+def serve_fiscal_mobile_pwa():
+    return FileResponse(os.path.join(FRONTEND_DIR, "fiscal.html"))
+
+
+@app.get("/manifest.json")
+def serve_pwa_manifest():
+    return FileResponse(os.path.join(FRONTEND_DIR, "manifest.json"), media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+def serve_service_worker():
+    return FileResponse(os.path.join(FRONTEND_DIR, "sw.js"), media_type="application/javascript")

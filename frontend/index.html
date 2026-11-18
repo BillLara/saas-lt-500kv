@@ -637,9 +637,56 @@
     </div>
 
     <!-- ================================================================== -->
-    <!-- TAB 4: APP MOBILE DO FISCAL (OFFLINE-FIRST SQLITE + GEOFENCING) -->
+    <!-- TAB 5: APP MOBILE DO FISCAL (OFFLINE-FIRST SQLITE + GEOFENCING + PWA) -->
     <!-- ================================================================== -->
-    <div id="tab-mobile" class="tab-pane hidden">
+    <div id="tab-mobile" class="tab-pane hidden space-y-6">
+
+      <!-- PAINEL DE INSTALAÇÃO NO TELEFONE DO FISCAL (PWA CUSTO ZERO + QR CODE) -->
+      <div class="glass rounded-xl p-5 border border-cyan-500/40">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div class="space-y-2.5 flex-1 text-xs">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase text-[11px]">
+                📲 PWA Instalável Custo Zero (Android &amp; iPhone)
+              </span>
+              <h2 class="text-base font-bold text-white">Como Abrir e Instalar o Formulário no Telefone do Fiscal</h2>
+            </div>
+            <p class="text-slate-300 leading-relaxed">
+              O aplicativo dedicado do fiscal já está publicado em tela cheia na rota <a href="https://saas-lt-500kv.onrender.com/fiscal" target="_blank" class="text-cyan-300 font-bold underline">https://saas-lt-500kv.onrender.com/fiscal</a> (ou <a href="/fiscal" target="_blank" class="text-cyan-300 underline">/fiscal</a> localmente), conectado em tempo real ao banco <b>Neon.tech</b>:
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div class="font-bold text-cyan-300">1. Aponte a Câmera (QR Code)</div>
+                <p class="text-slate-400 text-[11px]">Aponte a câmera do celular para o QR Code ao lado ou envie o link <code class="text-white">https://saas-lt-500kv.onrender.com/fiscal</code> pelo WhatsApp do fiscal.</p>
+              </div>
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div class="font-bold text-emerald-300">2. Instale na Tela Inicial (Sem Loja)</div>
+                <p class="text-slate-400 text-[11px]">No celular, toque em <b>"Instalar App"</b> (Android Chrome) ou em <b>Compartilhar → "Adicionar à Tela de Início"</b> (iPhone Safari). Funciona <b>Offline</b> na faixa da LT!</p>
+              </div>
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div class="font-bold text-amber-300">3. GPS Real + Voz + Sync Nuvem</div>
+                <p class="text-slate-400 text-[11px]">No celular, use o botão <b>"📡 Ler GPS Real do Celular"</b> (e marque <i>Modo Teste Remoto</i> se estiver testando fora do canteiro de Campos/Açu).</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <a href="https://saas-lt-500kv.onrender.com/fiscal" target="_blank" class="px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
+                📱 Abrir App Mobile Tela Cheia (/fiscal)
+              </a>
+              <button type="button" onclick="copiarLinkFiscal()" id="btn-copiar-link-fiscal" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-semibold text-xs transition">
+                📋 Copiar Link Público para WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <!-- QR CODE ESCANEÁVEL PELO CELULAR -->
+          <div class="flex flex-col items-center bg-white p-3 rounded-2xl shadow-xl border-4 border-cyan-400/60 min-w-[156px]">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https%3A%2F%2Fsaas-lt-500kv.onrender.com%2Ffiscal" alt="QR Code App Fiscal LT 500kV" class="w-32 h-32 rounded" />
+            <span class="text-[10px] font-extrabold text-slate-900 mt-1.5 uppercase tracking-tight">Aponte a Câmera do Celular</span>
+            <span class="text-[9px] font-mono text-slate-600">saas-lt-500kv.onrender.com/fiscal</span>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <!-- SIMULADOR DO SMARTPHONE DO FISCAL -->
         <div class="lg:col-span-5 bg-slate-950 border-4 border-slate-800 rounded-[2rem] p-5 shadow-2xl max-w-md mx-auto w-full space-y-4">
@@ -666,10 +713,15 @@
             <!-- GEOFENCING 50M -->
             <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-semibold text-slate-300">📍 Validação GPS (Cerca <= 50m):</span>
-                <button type="button" onclick="posicionarGpsNaTorre()" class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[11px] font-semibold">
-                  Capturar GPS na Estaca
-                </button>
+                <span class="font-semibold text-slate-300">📍 Validação GPS (Cerca &le; 50m):</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="capturarGpsRealNoCockpit()" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                    📡 GPS Real
+                  </button>
+                  <button type="button" onclick="posicionarGpsNaTorre()" class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-semibold">
+                    🎯 Na Estaca
+                  </button>
+                </div>
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>
@@ -681,6 +733,10 @@
                   <input type="number" step="0.000001" id="mob-lon" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white" />
                 </div>
               </div>
+              <label class="flex items-center gap-2 pt-0.5 text-[11px] text-slate-300 cursor-pointer">
+                <input type="checkbox" id="chk-ignorar-geofence-cockpit" class="rounded bg-slate-950 border-slate-700 text-cyan-400" />
+                <span>🔓 Modo Teste Remoto (Liberar envio fora do raio de 50m)</span>
+              </label>
             </div>
 
             <!-- ETAPA E STATUS RÁPIDO -->
@@ -1631,6 +1687,47 @@
       aoMudarTorreMobile();
     }
 
+    function copiarLinkFiscal() {
+      const url = "https://saas-lt-500kv.onrender.com/fiscal";
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      }
+      const btn = document.getElementById('btn-copiar-link-fiscal');
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = "✅ Link Copiado! (Cole no WhatsApp)";
+        setTimeout(() => { btn.innerHTML = orig; }, 3000);
+      }
+    }
+
+    function capturarGpsRealNoCockpit() {
+      const fb = document.getElementById('mob-feedback');
+      if (!navigator.geolocation) {
+        fb.classList.remove('hidden');
+        fb.className = 'p-2.5 rounded-lg text-xs bg-rose-500/20 border border-rose-500/50 text-rose-200';
+        fb.textContent = '❌ Este navegador não suporta GPS nativo.';
+        return;
+      }
+      fb.classList.remove('hidden');
+      fb.className = 'p-2.5 rounded-lg text-xs bg-cyan-500/20 border border-cyan-500/40 text-cyan-200';
+      fb.textContent = '📡 Obtendo coordenada GPS real do seu dispositivo...';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('mob-lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('mob-lon').value = pos.coords.longitude.toFixed(6);
+          const chk = document.getElementById('chk-ignorar-geofence-cockpit');
+          if (chk) chk.checked = true;
+          fb.className = 'p-2.5 rounded-lg text-xs bg-emerald-500/20 border border-emerald-500/40 text-emerald-200';
+          fb.textContent = `✅ GPS Real capturado (${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}). Modo Teste Remoto ativado para permitir envio fora do canteiro.`;
+        },
+        (err) => {
+          fb.className = 'p-2.5 rounded-lg text-xs bg-rose-500/20 border border-rose-500/50 text-rose-200';
+          fb.textContent = `❌ Permissão de localização negada ou indisponível (${err.message}).`;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
     function renderChecklistDinamico() {
       const cod = document.getElementById('mob-select-torre').value;
       const est = cockpitData.estruturas.find(e => e.codigo_projeto === cod) || {};
@@ -1709,6 +1806,7 @@
         latitude_coleta: parseFloat(document.getElementById('mob-lat').value),
         longitude_coleta: parseFloat(document.getElementById('mob-lon').value),
         observacao_texto: document.getElementById('mob-obs').value,
+        ignorar_trava_geofence_teste: document.getElementById('chk-ignorar-geofence-cockpit') ? document.getElementById('chk-ignorar-geofence-cockpit').checked : false,
         checklist: {
           torque_obtido_lbft: document.getElementById('chk-torque') ? parseFloat(document.getElementById('chk-torque').value) : null,
           profundidade_m: document.getElementById('chk-prof') ? parseFloat(document.getElementById('chk-prof').value) : null
