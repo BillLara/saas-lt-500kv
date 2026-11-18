@@ -253,8 +253,14 @@
     }
 
     function abrirNoChromeAndroid() {
-      const hostPath = window.location.host + window.location.pathname;
-      window.location.href = `intent://${hostPath}#Intent;scheme=https;package=com.android.chrome;end`;
+      const url = window.location.href;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      }
+      const btn = document.getElementById('btn-copiar-url-pwa');
+      if (btn) {
+        btn.textContent = '✅ Link Copiado! Agora abra o app Chrome no celular e cole.';
+      }
     }
 
     function fecharModalPWA() {
@@ -541,6 +547,9 @@
       } else {
         lbl.textContent = 'ONLINE (4G)';
         lbl.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]';
+        if (filaOfflineSQLite.length > 0 && navigator.onLine) {
+          sincronizarFilaOffline();
+        }
       }
     }
 
@@ -615,20 +624,56 @@
     }
 
     async function sincronizarFilaOffline() {
-      if (filaOfflineSQLite.length === 0) return;
-      document.getElementById('chk-modo-offline').checked = false;
-      toggleModoOffline();
-      for (const item of filaOfflineSQLite) {
-        await fetch('/api/campo/sincronizar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item)
-        });
+      const fb = document.getElementById('mob-feedback');
+      if (filaOfflineSQLite.length === 0) {
+        fb.classList.remove('hidden');
+        fb.className = 'p-3 rounded-xl text-xs bg-slate-800 border border-slate-700 text-slate-300';
+        fb.textContent = 'ℹ️ A fila offline já está vazia (nenhum registro pendente).';
+        return;
       }
-      filaOfflineSQLite = [];
-      localStorage.setItem("lt_fila_sqlite_v1", "[]");
+      document.getElementById('chk-modo-offline').checked = false;
+      const lbl = document.getElementById('lbl-status-rede');
+      lbl.textContent = 'ONLINE (4G)';
+      lbl.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]';
+
+      fb.classList.remove('hidden');
+      fb.className = 'p-3 rounded-xl text-xs bg-cyan-500/20 border border-cyan-500/40 text-cyan-200';
+      fb.textContent = `🔄 Sincronizando automaticamente ${filaOfflineSQLite.length} vistoria(s) da fila offline com a nuvem Neon.tech...`;
+
+      let enviados = 0;
+      let erros = [];
+      const pendentes = [];
+
+      for (const item of filaOfflineSQLite) {
+        try {
+          const res = await fetch('/api/campo/sincronizar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+          });
+          const data = await res.json();
+          if (res.ok) {
+            enviados++;
+          } else {
+            erros.push(`Torre ${item.codigo_projeto}: ${data.detail}`);
+          }
+        } catch (e) {
+          pendentes.push(item);
+        }
+      }
+
+      filaOfflineSQLite = pendentes;
+      localStorage.setItem("lt_fila_sqlite_v1", JSON.stringify(filaOfflineSQLite));
       atualizarUIFilaOffline();
       await inicializarAppFiscal();
+
+      if (erros.length > 0) {
+        fb.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/50 text-rose-200';
+        fb.innerHTML = `⚠️ Sincronizados: ${enviados} | Bloqueados por trava técnica: ${erros.join(' | ')}`;
+      } else if (enviados > 0) {
+        fb.className = 'p-3 rounded-xl text-xs bg-emerald-500/20 border border-emerald-500/40 text-emerald-200';
+        fb.innerHTML = `✅ <b>Sync Automático Concluído!</b> ${enviados} vistoria(s) da fila offline gravada(s) no banco Neon.tech!`;
+      }
     }
 
     function renderizarApontamentosNuvem() {
@@ -687,11 +732,15 @@
           </p>
         </div>
 
-        <!-- CASO 2: LEITOR DE QR CODE INTERNO -->
-        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-          <div class="font-bold text-emerald-300">2. Se estiver dentro do Leitor de QR Code da Câmera:</div>
-          <button onclick="abrirNoChromeAndroid()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
-            🌐 Abrir no Google Chrome Oficial
+        <!-- CASO 2: LEITOR DE QR CODE GOOGLE LENS (ABA CUSTOMIZADA) -->
+        <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2">
+          <div class="font-bold text-emerald-300">2. Abriu pelo Google Lens / Câmera QR? (Por isso a opção sumiu!)</div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            Quando você lê o QR Code pelo <b>Google Lens</b>, o Android abre uma "Aba Rápida da Câmera" que tem <i>Site para computador</i> e <i>Configurações</i>, mas <b>esconde</b> o botão <i>Adicionar à tela inicial</i>!<br>
+            👉 <b>Solução em 10 segundos:</b> Toque no botão abaixo para copiar o link, minimize a câmera, abra o aplicativo <b>Google Chrome</b> direto na tela do seu celular e cole o endereço:
+          </p>
+          <button id="btn-copiar-url-pwa" onclick="abrirNoChromeAndroid()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
+            📋 Copiar Link para Colar no App do Chrome
           </button>
         </div>
 
