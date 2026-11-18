@@ -112,11 +112,21 @@ class HybridConnection:
         return self._conn.close()
 
 
+def _sanitize_pg_url(url: str) -> str:
+    """Remove parâmetros incompatíveis com versões antigas do libpq no Linux/Render (ex: channel_binding=require)."""
+    clean = url.strip().strip("'").strip('"')
+    clean = clean.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?").replace("?channel_binding=require", "")
+    return clean
+
+
 def get_db() -> HybridConnection:
-    db_url = os.environ.get("DATABASE_URL", DATABASE_URL).strip()
-    if db_url and HAS_PSYCOPG2:
-        conn = psycopg2.connect(db_url)
-        return HybridConnection(conn, is_postgres=True)
+    db_url = _sanitize_pg_url(os.environ.get("DATABASE_URL", DATABASE_URL))
+    if db_url and HAS_PSYCOPG2 and db_url.startswith(("postgres://", "postgresql://")):
+        try:
+            conn = psycopg2.connect(db_url, connect_timeout=8)
+            return HybridConnection(conn, is_postgres=True)
+        except Exception as e:
+            print(f"[WARN] Falha ao conectar no PostgreSQL remoto ({e}); ativando fallback SQLite local.")
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(SQLITE_CLOUD_PATH)
     conn.row_factory = sqlite3.Row
@@ -222,7 +232,13 @@ def init_cloud_db():
     conn.commit()
     conn.close()
 
-init_cloud_db()
+
+@app.on_event("startup")
+def on_startup_init_db():
+    try:
+        init_cloud_db()
+    except Exception as e:
+        print(f"[WARN] Erro ao inicializar banco no startup: {e}")
 
 # ============================================================================
 # FUNÇÕES MATEMÁTICAS GEODÉSICAS E MOTOR DE IA (NLP + PREDITIVO + ORDENS DE PRODUÇÃO)
