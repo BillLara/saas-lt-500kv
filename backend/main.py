@@ -988,3 +988,13 @@ def serve_pwa_manifest():
 @app.get("/sw.js")
 def serve_service_worker():
     return FileResponse(os.path.join(FRONTEND_DIR, "sw.js"), media_type="application/javascript")
+
+
+@app.get("/icon-192.png")
+def serve_icon_192():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-192.png"), media_type="image/png")
+
+
+@app.get("/icon-512.png")
+def serve_icon_512():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-512.png"), media_type="image/png")
