@@ -221,7 +221,36 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
+      const btn = document.querySelector('#pwa-install-banner button');
+      if (btn) btn.textContent = '📲 Instalar Agora (1 Toque)';
     });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      marcarComoInstaladoUI();
+      fecharModalPWA();
+    });
+
+    function verificarSeJaInstalado() {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isStandalone) {
+        marcarComoInstaladoUI();
+      }
+    }
+
+    function marcarComoInstaladoUI() {
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) {
+        banner.className = 'mx-3 mt-3 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-between gap-2 text-xs';
+        banner.innerHTML = `
+          <div class="text-emerald-200">
+            <strong class="text-emerald-300 block">✅ Aplicativo Instalado com Sucesso no Telefone!</strong>
+            <span class="text-[11px] text-slate-300">Modo Tela Cheia ativo e cache das 84 torres salvo no aparelho.</span>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-extrabold text-[11px]">ATIVO</span>
+        `;
+      }
+    }
 
     function abrirNoChromeAndroid() {
       const hostPath = window.location.host + window.location.pathname;
@@ -255,6 +284,7 @@
     }
 
     async function inicializarAppFiscal() {
+      verificarSeJaInstalado();
       const nomeSalvo = localStorage.getItem("lt_fiscal_nome_v1");
       if (nomeSalvo) document.getElementById('mob-fiscal-nome').value = nomeSalvo;
 
@@ -643,30 +673,34 @@
       </div>
 
       <div class="space-y-3 text-slate-300">
-        <!-- CASO 1: ABRIU PELO LEITOR DE QR CODE INTERNO OU WHATSAPP -->
-        <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2">
-          <div class="font-bold text-emerald-300">1. Abriu pelo Leitor de QR Code da Câmera ou WhatsApp?</div>
-          <p class="text-[11px] text-slate-300 leading-relaxed">
-            O leitor de QR Code abre uma "janela simplificada" que esconde o botão de instalar. Toque no botão abaixo para transferir automaticamente para o <b>Google Chrome</b> oficial (ou escolha <b>"Abrir no navegador / Abrir no Chrome"</b> no menu):
+        <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-[11px]">
+          ℹ️ <b>Status Atual:</b> Você está usando o formulário pelo navegador (o atalho ainda não foi criado na tela inicial do aparelho).
+        </div>
+
+        <!-- PASSO PRINCIPAL NO CHROME ANDROID: ROLAR O MENU DOS 3 PONTINHOS PARA BAIXO -->
+        <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 space-y-1.5">
+          <div class="font-bold text-cyan-300">1. No Google Chrome (Android) — Onde fica a opção escondida:</div>
+          <p class="text-[11px] text-slate-200 leading-relaxed">
+            1º) Toque nos <b>3 pontinhos (`⋮`)</b> lá no canto superior direito do navegador.<br>
+            2º) <b>Arraste a lista desse menu para cima (role o menu para baixo)</b> — a opção não aparece no topo do menu!<br>
+            3º) Lá na parte de baixo do menu (perto de <i>Configurações</i>), toque em <b>`📲 Adicionar à tela inicial`</b> (ou <i>Add to Home screen</i>).
           </p>
-          <button onclick="abrirNoChromeAndroid()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
-            🌐 Transferir para o Google Chrome Oficial
+        </div>
+
+        <!-- CASO 2: LEITOR DE QR CODE INTERNO -->
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="font-bold text-emerald-300">2. Se estiver dentro do Leitor de QR Code da Câmera:</div>
+          <button onclick="abrirNoChromeAndroid()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
+            🌐 Abrir no Google Chrome Oficial
           </button>
         </div>
 
-        <!-- CASO 2: SAMSUNG INTERNET (BARRA INFERIOR) -->
+        <!-- CASO 3: IPHONE / SAFARI OU SAMSUNG -->
         <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-          <div class="font-bold text-cyan-300">2. Está no Navegador Samsung Internet?</div>
+          <div class="font-bold text-amber-300">3. No iPhone (Safari) ou Samsung Internet:</div>
           <p class="text-[11px] text-slate-400">
-            O menu fica na <b>barra inferior direita</b> (ícone de <b>3 traços `≡`</b>) ➔ toque em <b>`+ Adicionar página a`</b> ➔ escolha <b>`Tela inicial`</b>.
-          </p>
-        </div>
-
-        <!-- CASO 3: IPHONE / SAFARI -->
-        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-          <div class="font-bold text-amber-300">3. Está no iPhone (Safari)?</div>
-          <p class="text-[11px] text-slate-400">
-            Toque no ícone de <b>Compartilhar</b> (quadrado com seta para cima na barra inferior) ➔ role para baixo e toque em <b>`Adicionar à Tela de Início`</b>.
+            • <b>iPhone:</b> Toque em <b>Compartilhar</b> (barra inferior) ➔ role para baixo ➔ <b>`Adicionar à Tela de Início`</b>.<br>
+            • <b>Samsung Internet:</b> Toque em <b>`≡` (barra inferior direita)</b> ➔ <b>`+ Adicionar página a`</b> ➔ <b>`Tela inicial`</b>.
           </p>
         </div>
       </div>
