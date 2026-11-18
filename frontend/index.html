@@ -1908,6 +1908,12 @@
         const p50 = mc.percentis.P50;
         const p80 = mc.percentis.P80;
         const p90 = mc.percentis.P90;
+        const exp = mc.contadores_exposicao || {};
+        const sptPendentes = exp.torres_spt30_pendentes ?? ests.filter(e => e.conflito_spt_maior_30 && e.status_fundacao !== 'CONCLUIDO').length;
+        const semBsePendentes = ests.filter(e => e.conflito_spt_maior_30 && !e.opcao_2_contingencia_bse && e.status_fundacao !== 'CONCLUIDO').length;
+        const alagPendentes = exp.torres_alagaveis_pendentes ?? ests.filter(e => e.area_alagavel && e.status_fundacao !== 'CONCLUIDO').length;
+        const travPendentes = exp.travessias_pendentes ?? ests.filter(e => e.travessia_critica && e.status_lancamento !== 'CONCLUIDO').length;
+        const alertasVermelhos = k.alertas_vermelhos ?? ests.filter(e => e.criticidade_ia === 'VERMELHO').length;
 
         bodyEl.innerHTML = `
           <div class="space-y-4 text-xs">
@@ -1948,25 +1954,25 @@
                     <tr>
                       <td class="py-2 px-2.5 font-bold text-rose-300">1. Geotecnia (SPT &gt; 30 &amp; Sem BSE-M)</td>
                       <td class="py-2 px-2.5"><code class="text-cyan-300">40-MDE-14022-619-AB0-P-RAI-00071-0.pdf</code> (Memorial de Sondagem) + <code class="text-cyan-300">06-PRO-00002-2.pdf</code> (Item 4 — FVS Impenetrabilidade)</td>
-                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.torres_spt_critico_pendentes} torres SPT&gt;30 (${mc.exposicao_residual.torres_sem_bse_pendentes} sem BSE-M)</td>
+                      <td class="py-2 px-2.5 font-mono">${sptPendentes} torres SPT&gt;30 (${semBsePendentes} sem BSE-M)</td>
                       <td class="py-2 px-2.5 font-mono">Com BSE-M: 0,5 / 1,5 / 3,5d<br>Sem BSE-M: 2,0 / 4,5 / 9,0d (p=68%)</td>
                     </tr>
                     <tr>
                       <td class="py-2 px-2.5 font-bold text-amber-300">2. Hidrogeologia &amp; Áreas Alagáveis</td>
                       <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx</code> (Nota 12.11.1 — 30 torres na baixada com exigência ΔH &ge; 60cm)</td>
-                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.torres_alagaveis_pendentes} torres alagáveis pendentes</td>
+                      <td class="py-2 px-2.5 font-mono">${alagPendentes} torres alagáveis pendentes</td>
                       <td class="py-2 px-2.5 font-mono">Drenagem/Pranchão: 0,4 / 1,1 / 3,0d (p=35%)</td>
                     </tr>
                     <tr>
                       <td class="py-2 px-2.5 font-bold text-cyan-300">3. Travessias Críticas (345kV / 138kV / DER)</td>
                       <td class="py-2 px-2.5"><code class="text-cyan-300">40-LLI-14022-619-AB0-P-RAI-00001-5.xlsx</code> (Notas 12.2, 12.3 e 12.4 — Furnas, Enel e Rodovias RJ)</td>
-                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.travessias_criticas_pendentes} travessias pendentes</td>
+                      <td class="py-2 px-2.5 font-mono">${travPendentes} travessias pendentes</td>
                       <td class="py-2 px-2.5 font-mono">Janela Desligamento: 1,0 / 2,5 / 6,5d (p=32%)</td>
                     </tr>
                     <tr>
                       <td class="py-2 px-2.5 font-bold text-purple-300">4. Logística &amp; Produtividade de Campo</td>
                       <td class="py-2 px-2.5"><code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D.mpp</code> (Ritmos nominais de 0,49 a 0,51 torres/dia) + <code class="text-cyan-300">Contrato EPC Cláus. 19.2.3</code></td>
-                      <td class="py-2 px-2.5 font-mono">${mc.exposicao_residual.alertas_vermelhos_ativos} alertas críticos ativos em campo</td>
+                      <td class="py-2 px-2.5 font-mono">${alertasVermelhos} alertas críticos ativos em campo</td>
                       <td class="py-2 px-2.5 font-mono">Variabilidade Base: 1,0 / 3,2 / 7,5d + 1,2 a 6,0d por alerta</td>
                     </tr>
                   </tbody>
