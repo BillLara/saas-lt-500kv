@@ -438,9 +438,12 @@
       <div class="glass rounded-xl p-5 space-y-5">
         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold uppercase">Earned Value Analysis (EVA)</span>
               <h2 class="font-bold text-base text-white">Curva S Executiva — Baseline Planejada (R0D) × Curva Realizada × Tendência Preditiva (Monte Carlo P50 / P80)</h2>
+              <button onclick="abrirModalExplicacao('CURVA_S_TENDENCIA')" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-bold transition flex items-center gap-1" title="Ver memória de cálculo e fontes das curvas de tendência P50 e P80">
+                ⓘ Cálculo da Tendência &amp; Fontes
+              </button>
             </div>
             <p class="text-xs text-slate-400 mt-1">
               A Curva Baseline é integrada a partir das datas reais do MS Project (<code class="text-cyan-300">Set/2022 a Out/2023</code>). A partir do ponto de corte atual, a IA projeta a inclinação futura nos cenários <strong class="text-amber-300">P50 (Provável)</strong> e <strong class="text-rose-400">P80 (Conservador AACE)</strong>.
@@ -483,10 +486,20 @@
             <strong id="cs-kpi-desvio" class="text-lg font-bold text-amber-400 mt-0.5 block">0,0%</strong>
             <span id="cs-kpi-desvio-status" class="text-[11px] text-slate-400">Dentro do limiar</span>
           </div>
-          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span class="text-slate-400 block">Previsão de Conclusão (100% Escopo)</span>
-            <strong id="cs-kpi-termino-p80" class="text-sm font-bold text-rose-400 mt-1 block">P80: 2023-11-08</strong>
-            <span id="cs-kpi-termino-p50" class="text-[11px] text-amber-300">P50: 2023-11-03 | Baseline: 2023-10-15</span>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-slate-400">Previsão de Conclusão (100% Escopo)</span>
+                <button onclick="abrirModalExplicacao('CURVA_S_TENDENCIA')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition" title="Ver fórmula e fontes da projeção de tendência">
+                  ⓘ Tendência
+                </button>
+              </div>
+              <strong id="cs-kpi-termino-p80" class="text-sm font-bold text-rose-400 mt-1 block">P80: 2023-11-08</strong>
+              <span id="cs-kpi-termino-p50" class="text-[11px] text-amber-300">P50: 2023-11-03 | Baseline: 2023-10-15</span>
+            </div>
+            <div class="text-[10px] text-slate-500 mt-1.5 pt-1 border-t border-slate-800/80 font-mono truncate">
+              Fonte: 03-CRO.mpp + Monte Carlo (2.000 iter.)
+            </div>
           </div>
         </div>
 
@@ -2313,6 +2326,93 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        `;
+      } else if (tipo === 'CURVA_S_TENDENCIA') {
+        const cs = cockpitData.curva_s || {};
+        const escopo = (document.getElementById('select-escopo-curvas') || {}).value || 'GLOBAL';
+        const dados = (cs.escopos && cs.escopos[escopo]) ? cs.escopos[escopo] : {
+          pv_total_brl: k.pv_planejado_total_brl,
+          ev_atual_brl: k.ev_agregado_atual_brl,
+          avanco_atual_pct: k.avanco_global_pct,
+          planejado_no_corte_pct: 0,
+          desvio_no_corte_pct: 0,
+          rotulo_mes_corte: 'Mai/23'
+        };
+        const p50 = mc.percentis.P50;
+        const p80 = mc.percentis.P80;
+        const restantePct = Math.max(0, 100.0 - dados.avanco_atual_pct);
+        const restanteBrl = Math.max(0, dados.pv_total_brl - dados.ev_atual_brl);
+        const nomesEscopo = {
+          GLOBAL: 'Global Consolidado LT 500 kV (100% CAPEX)',
+          FUNDACAO: 'Fundações Helicoidais & Civil',
+          MONTAGEM: 'Montagem Eletromecânica (Autop. + GNEL)',
+          LANCAMENTO: 'Lançamento de Cabos Condutores & OPGW'
+        };
+
+        tituloEl.textContent = 'Memória de Cálculo & Fontes — Curva S e Projeção de Tendência IA (P50 × P80)';
+        subEl.textContent = `Escopo Selecionado: ${nomesEscopo[escopo] || escopo} • Corte Atual: ${dados.rotulo_mes_corte}`;
+
+        bodyEl.innerHTML = `
+          <div class="space-y-4 text-xs">
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">1. Como a Curva Baseline (Azul) e a Curva Realizada (Verde) são Construídas</div>
+              <p class="text-slate-300 leading-relaxed">
+                Cada pacote folha do cronograma MS Project (<code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D.mpp</code>, IDs 63 a 92) tem seu orçamento <b>PV</b> distribuído entre sua data real de <b>Início</b> e <b>Término</b> usando o perfil sigmoidal clássico de Curva S (<code class="text-sky-300">f(x) = 3x² − 2x³</code>). A <b>Curva Realizada (Verde)</b> mede o <b>EV</b> acumulado das torres apontadas pelo fiscal até o mês de corte (<b>${dados.rotulo_mes_corte}</b>):
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1 font-mono text-[11px]">
+                <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-400 block text-[10px]">Realizado no Corte (${dados.rotulo_mes_corte})</span>
+                  <strong class="text-emerald-400 text-sm">${dados.avanco_atual_pct.toFixed(2)}%</strong>
+                  <span class="block text-[10px] text-slate-400">${formatBRL(dados.ev_atual_brl)}</span>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-400 block text-[10px]">Saldo Remanescente (100% − Real)</span>
+                  <strong class="text-amber-300 text-sm">${restantePct.toFixed(2)}%</strong>
+                  <span class="block text-[10px] text-slate-400">${formatBRL(restanteBrl)}</span>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-400 block text-[10px]">Desvio no Corte (Real − Baseline)</span>
+                  <strong class="${dados.desvio_no_corte_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'} text-sm">${dados.desvio_no_corte_pct >= 0 ? '+' : ''}${dados.desvio_no_corte_pct.toFixed(2)}%</strong>
+                  <span class="block text-[10px] text-slate-400">Baseline: ${dados.planejado_no_corte_pct.toFixed(2)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-4 space-y-2.5">
+              <div class="font-bold text-amber-300 uppercase text-[11px]">2. Fórmula do Cálculo das Curvas de Tendência Futura (P50 Âmbar e P80 Vermelha)</div>
+              <p class="text-slate-300 leading-relaxed">
+                A partir do ponto de corte (<b>${dados.rotulo_mes_corte}</b>), o motor (<code class="text-cyan-300">gerar_curva_s_eva</code> em <code class="text-cyan-300">ai_engine/monte_carlo.py</code>) parte exatamente do <b>Realizado Atual (${dados.avanco_atual_pct.toFixed(2)}%)</b> e projeta o ritmo de execução do <b>Saldo Remanescente (${restantePct.toFixed(2)}%)</b> aplicando os atrasos sorteados nas <b>2.000 iterações de Monte Carlo</b>:
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+                <div class="bg-slate-950 p-3 rounded-lg border border-amber-500/40 space-y-1">
+                  <div class="text-amber-300 font-bold">🟠 Tendência P50 (Cenário Provável — 50% confiança):</div>
+                  <div class="text-white">• Deslocamento de Prazo Sorteado: <b>+${p50.atraso_dias} dias</b></div>
+                  <div class="text-white">• Término Projetado P50: <b>${p50.data_termino_projetada}</b> (SPI = ${p50.spi_projetado.toFixed(3)})</div>
+                  <div class="text-amber-200 pt-1">Avanço_P50(t) = ${dados.avanco_atual_pct.toFixed(1)}% + ${restantePct.toFixed(1)}% × [Ganho_P50(t)]<sup>1,08</sup></div>
+                  <div class="text-slate-400 text-[10px]">Desloca 25% do atraso no início e 100% no fim dos pacotes futuros; expoente 1,08 modela atrito normal de fechamento.</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-rose-500/40 space-y-1">
+                  <div class="text-rose-300 font-bold">🔴 Tendência P80 (Conservador AACE — 80% confiança):</div>
+                  <div class="text-white">• Deslocamento de Prazo Sorteado: <b>+${p80.atraso_dias} dias</b></div>
+                  <div class="text-white">• Término Projetado P80: <b>${p80.data_termino_projetada}</b> (SPI = ${p80.spi_projetado.toFixed(3)})</div>
+                  <div class="text-rose-200 pt-1">Avanço_P80(t) = ${dados.avanco_atual_pct.toFixed(1)}% + ${restantePct.toFixed(1)}% × [Ganho_P80(t)]<sup>1,18</sup></div>
+                  <div class="text-slate-400 text-[10px]">Expoente 1,18 modela desaceleração acentuada nas travessias energizadas, comissionamento e fechamento de jumpers.</div>
+                </div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-rose-950/30 border border-rose-500/30 text-[11px] text-slate-300">
+                <b>📌 Faixa Sombreada Vermelha (Envelope de Incerteza):</b> A área pintada entre a linha tracejada <b>P50</b> e a linha tracejada <b>P80</b> representa o corredor estatístico de risco da obra. À medida que o fiscal conclui torres críticas (SPT &gt; 30, alagáveis e travessias), esse envelope se estreita automaticamente em direção à Curva Baseline.
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-1.5">
+              <div class="font-bold text-cyan-300 uppercase text-[11px]">3. Documentos-Fonte que Orientam a Curva S e a Tendência</div>
+              <ul class="space-y-1 text-slate-300 text-[11px]">
+                <li>📊 <b>Cronograma MS Project (<code class="text-cyan-300">03-CRO-14022-619-P-RAI-0001_R0D_06-09-22.mpp</code>):</b> Datas de início e término de cada pacote (Set/2022 a Out/2023) e prazo construtivo base de <b>391 dias</b>.</li>
+                <li>📄 <b>Contrato EPC (<code class="text-cyan-300">Contrato_EPC_LT_500_kV_-_GNA_x_Alubar.pdf</code>):</b> CAPEX global de <b>R$ 158.241.062,00</b> usado para ponderar o PV e o EV de cada disciplina.</li>
+                <li>🔬 <b>Calibração Estocástica dos Atrasos P50/P80:</b> Memorial de Sondagem <code class="text-cyan-300">40-MDE-00071-0.pdf</code> (12 torres SPT &gt; 30), Procedimento <code class="text-cyan-300">06-PRO-00002-2.pdf</code> e Lista de Construção <code class="text-cyan-300">40-LLI-00001-5.xlsx</code> (Notas 12.4 e 12.11.1).</li>
+              </ul>
             </div>
           </div>
         `;
